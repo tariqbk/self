@@ -1,14 +1,13 @@
 services:
   glances:
     container_name: glances
-    image: nicolargo/glances:latest-full
-    network_mode: bridge
-    ports:
-      - "61208:61208"
+    image: nicolargo/glances:latest
+    network_mode: host
     environment:
       - GLANCES_OPT=-w
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
       - /etc/os-release:/etc/os-release:ro
     pid: host
     restart: unless-stopped
