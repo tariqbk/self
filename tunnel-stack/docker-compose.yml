@@ -1,0 +1,108 @@
+services:
+
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    networks:
+      - tunnel_net
+    ports:
+      - "8080:80"
+    environment:
+      TZ: "America/Chicago"
+      WEBSOCKET_ENABLED: "true"
+      SIGNUPS_ALLOWED: "false"
+    volumes:
+      - vaultwarden_data:/data
+    restart: unless-stopped
+
+  linkding:
+    container_name: linkding
+    image: sissbruecker/linkding:latest
+    networks:
+      - tunnel_net
+    ports:
+      - "9090:9090"
+    environment:
+      TZ: "America/Chicago"
+      LD_SUPERUSER_NAME: "${LINKDING_SUPERUSER}"
+      LD_SUPERUSER_PASSWORD: "${LINKDING_PASSWORD}"
+    volumes:
+      - linkding_data:/etc/linkding/data
+    restart: unless-stopped
+
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:release
+    networks:
+      - tunnel_net
+    ports:
+      - "2283:2283"
+    environment:
+      TZ: "America/Chicago"
+      DB_HOSTNAME: immich-postgres
+      DB_USERNAME: "${IMMICH_DB_USER}"
+      DB_PASSWORD: "${IMMICH_DB_PASSWORD}"
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+    volumes:
+      - ${IMMICH_PHOTOS_PATH}:/usr/src/app/upload
+    depends_on:
+      - immich-redis
+      - immich-postgres
+    restart: unless-stopped
+
+  immich-machine-learning:
+    container_name: immich_ml
+    image: ghcr.io/immich-app/immich-machine-learning:release
+    networks:
+      - tunnel_net
+    environment:
+      TZ: "America/Chicago"
+    volumes:
+      - immich_model_cache:/cache
+    restart: unless-stopped
+
+  immich-redis:
+    container_name: immich_redis
+    image: redis:7-alpine
+    networks:
+      - tunnel_net
+    restart: unless-stopped
+
+  immich-postgres:
+    container_name: immich_postgres
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    networks:
+      - tunnel_net
+    environment:
+      POSTGRES_USER: "${IMMICH_DB_USER}"
+      POSTGRES_PASSWORD: "${IMMICH_DB_PASSWORD}"
+      POSTGRES_DB: immich
+    volumes:
+      - immich_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  cloudflared:
+    container_name: cloudflared
+    image: cloudflare/cloudflared:latest
+    networks:
+      - tunnel_net
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN}"
+    restart: unless-stopped
+    depends_on:
+      - vaultwarden
+      - immich-server
+      - linkding
+
+networks:
+  tunnel_net:
+    driver: bridge
+    name: tunnel_net
+
+volumes:
+  vaultwarden_data:
+  linkding_data:
+  immich_model_cache:
+  immich_postgres_data:
