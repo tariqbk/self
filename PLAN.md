@@ -41,7 +41,7 @@ nano secrets.env
 
 ---
 
-### 🔄 Phase 1 — Docker + Portainer  ← CURRENT
+### ✅ Phase 1 — Docker + Portainer
 **What user-data does:**
 - Sets hostname, timezone, keyboard, locale
 - Creates user `tariqbk` with hashed password
@@ -59,7 +59,7 @@ nano secrets.env
 
 ---
 
-### Phase 2 — Pi-hole
+### 🔄 Phase 2 — Pi-hole  ← CURRENT
 **Adds to user-data:**
 - Write `pihole/.env` from secrets
 - Run `docker compose up -d` in `pihole/`
