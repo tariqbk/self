@@ -42,23 +42,33 @@ runcmd:
   # Force NTP time sync first — Pi has no RTC so clock is wrong on first boot.
   # Without this, apt signature verification fails ("not live until ...").
   # systemd-timesyncd is guaranteed present (part of systemd) — no install needed.
+  - echo "[1/4] Waiting for NTP time synchronization..."
   - systemctl start systemd-timesyncd
   - timedatectl set-ntp true
   - until timedatectl show | grep -q 'NTPSynchronized=yes'; do sleep 2; done
+  - echo "[1/4] Time synchronized."
 
   # Install Docker (official convenience script — installs engine + compose plugin)
+  - echo "[2/4] Installing Docker..."
   - curl -fsSL https://get.docker.com | sh
+  - echo "[2/4] Docker installed."
 
   # Clone repo
+  - echo "[3/4] Cloning repo..."
   - git clone ${REPO_URL} /home/tariqbk/docker
   - chown -R tariqbk:tariqbk /home/tariqbk/docker
+  - echo "[3/4] Repo cloned."
 
   # Phase 1: Portainer
+  - echo "[4/4] Starting Portainer..."
   - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
+  - echo "[4/4] Portainer started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data from the boot partition so secrets don't persist on card
+  - echo "Setup complete. Cleaning up user-data..."
   - rm -f /boot/firmware/user-data
+  - echo "Done."
 
 rpi:
   interfaces:
