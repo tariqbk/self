@@ -41,7 +41,10 @@ package_upgrade: false
 runcmd:
   # Force NTP time sync first — Pi has no RTC so clock is wrong on first boot.
   # Without this, apt signature verification fails ("not live until ...").
-  - chronyc makestep 1 3
+  # systemd-timesyncd is guaranteed present (part of systemd) — no install needed.
+  - systemctl start systemd-timesyncd
+  - timedatectl set-ntp true
+  - until timedatectl show | grep -q 'NTPSynchronized=yes'; do sleep 2; done
 
   # Install Docker (official convenience script — installs engine + compose plugin)
   - curl -fsSL https://get.docker.com | sh
