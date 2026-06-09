@@ -8,11 +8,22 @@
 # ── System ────────────────────────────────────────────────────────────────────
 hostname: pi5
 manage_etc_hosts: true
+packages:
+  - avahi-daemon
+  - curl
+  - git
+
+# ── Packages ──────────────────────────────────────────────────────────────────
+apt:
+  conf: |
+    Acquire {
+      Check-Date "false";
+    };
 timezone: America/Chicago
 keyboard:
   model: pc105
-  layout: us
-
+  layout: "us"
+enable_ssh: true
 # ── User ──────────────────────────────────────────────────────────────────────
 users:
   - name: tariqbk
@@ -22,18 +33,6 @@ users:
     passwd: ${USER_PASSWORD_HASH}
 
 ssh_pwauth: true
-
-# ── Packages ──────────────────────────────────────────────────────────────────
-apt:
-  conf: |
-    Acquire {
-      Check-Date "false";
-    };
-
-packages:
-  - avahi-daemon
-  - curl
-  - git
 
 package_update: true
 package_upgrade: false
