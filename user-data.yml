@@ -1,407 +1,59 @@
 #cloud-config
-hostname: tariqbk-pi
+# ─────────────────────────────────────────────────────────────────────────────
+# TEMPLATE FILE — do not use directly.
+# Run ./build-user-data.sh to produce the final user-data file for flashing.
+# All ${VARIABLE} tokens are replaced by values from secrets.env.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── System ────────────────────────────────────────────────────────────────────
+hostname: pi5
 manage_etc_hosts: true
+timezone: America/Chicago
+keyboard:
+  model: pc105
+  layout: us
 
-package_update: true
-package_upgrade: true
+# ── User ──────────────────────────────────────────────────────────────────────
+users:
+  - name: tariqbk
+    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo,docker
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: ${USER_PASSWORD_HASH}
 
-packages:
-  - avahi-daemon
-  - apt-transport-https
-  - ca-certificates
-  - curl
-  - software-properties-common
-  - iptables-persistent
-  - dnsutils
-  - nfs-common
+ssh_pwauth: true
 
+# ── Packages ──────────────────────────────────────────────────────────────────
 apt:
   conf: |
     Acquire {
       Check-Date "false";
     };
 
-users:
-  - name: tariqbk
-    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo,docker
-    shell: /bin/bash
-    lock_passwd: false
-    passwd: <password-hash>
+packages:
+  - avahi-daemon
+  - curl
+  - git
 
-ssh_pwauth: true
-enable_ssh: true
+package_update: true
+package_upgrade: false
 
-write_files:
-  # SSH password authentication
-  - path: /etc/ssh/sshd_config.d/allow-password-auth.conf
-    owner: root:root
-    permissions: '0644'
-    content: |
-      PasswordAuthentication yes
-
-  # iptables rules — allow wlan0 and eth0 DNS traffic into Pi-hole container
-  - path: /etc/iptables/rules.v4
-    owner: root:root
-    permissions: '0644'
-    content: |
-      *nat
-      :PREROUTING ACCEPT [0:0]
-      :INPUT ACCEPT [0:0]
-      :OUTPUT ACCEPT [0:0]
-      :POSTROUTING ACCEPT [0:0]
-      -A PREROUTING -i wlan0 -p udp -m udp --dport 53 -j DNAT --to-destination 172.17.0.2:53
-      -A PREROUTING -i wlan0 -p tcp -m tcp --dport 53 -j DNAT --to-destination 172.17.0.2:53
-      -A PREROUTING -i eth0 -p udp -m udp --dport 53 -j DNAT --to-destination 172.17.0.2:53
-      -A PREROUTING -i eth0 -p tcp -m tcp --dport 53 -j DNAT --to-destination 172.17.0.2:53
-      -A POSTROUTING -o docker0 -p udp -m udp --dport 53 -j MASQUERADE
-      -A POSTROUTING -o docker0 -p tcp -m tcp --dport 53 -j MASQUERADE
-      COMMIT
-      *filter
-      :INPUT ACCEPT [0:0]
-      :FORWARD DROP [0:0]
-      :OUTPUT ACCEPT [0:0]
-      -A FORWARD -i wlan0 -o docker0 -p udp -m udp --dport 53 -j ACCEPT
-      -A FORWARD -i wlan0 -o docker0 -p tcp -m tcp --dport 53 -j ACCEPT
-      -A FORWARD -i eth0 -o docker0 -p udp -m udp --dport 53 -j ACCEPT
-      -A FORWARD -i eth0 -o docker0 -p tcp -m tcp --dport 53 -j ACCEPT
-      -A FORWARD -i docker0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-      -A FORWARD -i docker0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-      COMMIT
-
-  # systemd service — restore iptables after Docker starts
-  - path: /etc/systemd/system/pihole-iptables.service
-    owner: root:root
-    permissions: '0644'
-    content: |
-      [Unit]
-      Description=Apply Pi-hole iptables rules
-      After=docker.service
-      Requires=docker.service
-
-      [Service]
-      Type=oneshot
-      ExecStart=/sbin/iptables-restore /etc/iptables/rules.v4
-      RemainAfterExit=yes
-
-      [Install]
-      WantedBy=multi-user.target
-
-  # systemd service — start Pi-hole after iptables are ready
-  - path: /etc/systemd/system/pihole.service
-    owner: root:root
-    permissions: '0644'
-    content: |
-      [Unit]
-      Description=Pi-hole Docker Compose
-      After=docker.service pihole-iptables.service
-      Requires=docker.service pihole-iptables.service
-
-      [Service]
-      Type=oneshot
-      RemainAfterExit=yes
-      WorkingDirectory=/home/tariqbk/docker/pihole
-      ExecStart=/usr/bin/docker compose up -d
-      ExecStop=/usr/bin/docker compose down
-
-      [Install]
-      WantedBy=multi-user.target
-
-  # Pi-hole docker-compose.yml
-  - path: /home/tariqbk/docker/pihole/docker-compose.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      services:
-        pihole:
-          container_name: pihole
-          image: pihole/pihole:latest
-          network_mode: bridge
-          ports:
-            - "53:53/tcp"
-            - "53:53/udp"
-            - "80:80/tcp"
-          environment:
-            TZ: "America/Chicago"
-            FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD}"
-            FTLCONF_dns_upstreams: "1.1.1.1;1.0.0.1"
-            FTLCONF_dns_dnssec: "true"
-          volumes:
-            - './etc-pihole:/etc/pihole'
-          cap_add:
-            - NET_ADMIN
-          restart: unless-stopped
-
-  # Pi-hole .env
-  - path: /home/tariqbk/docker/pihole/.env
-    owner: tariqbk:tariqbk
-    permissions: '0600'
-    content: |
-      PIHOLE_PASSWORD=changeme
-
-  # Portainer docker-compose.yml
-  - path: /home/tariqbk/docker/portainer/docker-compose.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      services:
-        portainer:
-          container_name: portainer
-          image: portainer/portainer-ce:latest
-          network_mode: bridge
-          ports:
-            - "9443:9443"
-            - "8000:8000"
-          volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - portainer_data:/data
-          restart: unless-stopped
-
-      volumes:
-        portainer_data:
-
-  # Glances docker-compose.yml
-  - path: /home/tariqbk/docker/glances/docker-compose.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      services:
-        glances:
-          container_name: glances
-          image: nicolargo/glances:latest-full
-          network_mode: bridge
-          ports:
-            - "61208:61208"
-          environment:
-            - GLANCES_OPT=-w
-          volumes:
-            - /var/run/docker.sock:/var/run/docker.sock:ro
-            - /etc/os-release:/etc/os-release:ro
-          pid: host
-          restart: unless-stopped
-
-  # Home Assistant docker-compose.yml
-  - path: /home/tariqbk/docker/homeassistant/docker-compose.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      services:
-        homeassistant:
-          container_name: homeassistant
-          image: ghcr.io/home-assistant/home-assistant:stable
-          network_mode: host
-          environment:
-            TZ: "America/Chicago"
-          volumes:
-            - ./config:/config
-          restart: unless-stopped
-          privileged: true
-
-  # Tunnel stack docker-compose.yml
-  - path: /home/tariqbk/docker/tunnel-stack/docker-compose.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      services:
-
-        vaultwarden:
-          container_name: vaultwarden
-          image: vaultwarden/server:latest
-          networks:
-            - tunnel_net
-          ports:
-            - "8080:80"
-          environment:
-            TZ: "America/Chicago"
-            WEBSOCKET_ENABLED: "true"
-            SIGNUPS_ALLOWED: "false"
-          volumes:
-            - vaultwarden_data:/data
-          restart: unless-stopped
-
-        linkding:
-          container_name: linkding
-          image: sissbruecker/linkding:latest
-          networks:
-            - tunnel_net
-          ports:
-            - "9090:9090"
-          environment:
-            TZ: "America/Chicago"
-            LD_SUPERUSER_NAME: "${LINKDING_SUPERUSER}"
-            LD_SUPERUSER_PASSWORD: "${LINKDING_PASSWORD}"
-          volumes:
-            - linkding_data:/etc/linkding/data
-          restart: unless-stopped
-
-        immich-server:
-          container_name: immich_server
-          image: ghcr.io/immich-app/immich-server:release
-          networks:
-            - tunnel_net
-          ports:
-            - "2283:2283"
-          environment:
-            TZ: "America/Chicago"
-            DB_HOSTNAME: immich-postgres
-            DB_USERNAME: "${IMMICH_DB_USER}"
-            DB_PASSWORD: "${IMMICH_DB_PASSWORD}"
-            DB_DATABASE_NAME: immich
-            REDIS_HOSTNAME: immich-redis
-          volumes:
-            - ${IMMICH_PHOTOS_PATH}:/usr/src/app/upload
-          depends_on:
-            - immich-redis
-            - immich-postgres
-          restart: unless-stopped
-
-        immich-machine-learning:
-          container_name: immich_ml
-          image: ghcr.io/immich-app/immich-machine-learning:release
-          networks:
-            - tunnel_net
-          environment:
-            TZ: "America/Chicago"
-          volumes:
-            - immich_model_cache:/cache
-          restart: unless-stopped
-
-        immich-redis:
-          container_name: immich_redis
-          image: redis:7-alpine
-          networks:
-            - tunnel_net
-          restart: unless-stopped
-
-        immich-postgres:
-          container_name: immich_postgres
-          image: tensorchord/pgvecto-rs:pg14-v0.2.0
-          networks:
-            - tunnel_net
-          environment:
-            POSTGRES_USER: "${IMMICH_DB_USER}"
-            POSTGRES_PASSWORD: "${IMMICH_DB_PASSWORD}"
-            POSTGRES_DB: immich
-          volumes:
-            - immich_postgres_data:/var/lib/postgresql/data
-          restart: unless-stopped
-
-        cloudflared:
-          container_name: cloudflared
-          image: cloudflare/cloudflared:latest
-          networks:
-            - tunnel_net
-          command: tunnel --no-autoupdate run
-          environment:
-            TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN}"
-          restart: unless-stopped
-          depends_on:
-            - vaultwarden
-            - immich-server
-            - linkding
-
-      networks:
-        tunnel_net:
-          driver: bridge
-          name: tunnel_net
-
-      volumes:
-        vaultwarden_data:
-        linkding_data:
-        immich_model_cache:
-        immich_postgres_data:
-
-  # Tunnel stack .env
-  - path: /home/tariqbk/docker/tunnel-stack/.env
-    owner: tariqbk:tariqbk
-    permissions: '0600'
-    content: |
-      CLOUDFLARE_TUNNEL_TOKEN=your_tunnel_token_here
-      LINKDING_SUPERUSER=admin
-      LINKDING_PASSWORD=changeme
-      IMMICH_DB_USER=immich
-      IMMICH_DB_PASSWORD=changeme
-      IMMICH_PHOTOS_PATH=/mnt/nas/immich
-
-  # Cloudflared tunnel config
-  - path: /home/tariqbk/docker/tunnel-stack/cloudflared-config.yml
-    owner: tariqbk:tariqbk
-    permissions: '0644'
-    content: |
-      ingress:
-        - hostname: vault.tariqbk.com
-          service: http://vaultwarden:80
-        - hostname: photos.tariqbk.com
-          service: http://immich-server:2283
-        - hostname: links.tariqbk.com
-          service: http://linkding:9090
-        - service: http_status:404
-
-  # Pi-hole local DNS entries
-  - path: /home/tariqbk/docker/pihole/etc-pihole/custom.list
-    owner: root:root
-    permissions: '0644'
-    content: |
-      192.168.68.2 pihole.home
-      192.168.68.2 portainer.home
-      192.168.68.2 vault.home
-      192.168.68.2 photos.home
-      192.168.68.2 links.home
-      192.168.68.2 ha.home
-      192.168.68.2 glances.home
-
-  # NFS fstab entry for Synology NAS (update NAS_IP before use)
-  # Mount point created in runcmd below
-
+# ── Bootstrap ─────────────────────────────────────────────────────────────────
 runcmd:
-  # Install Docker
-  - curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-  - sh /tmp/get-docker.sh
-  - usermod -aG docker tariqbk
+  # Install Docker (official convenience script — installs engine + compose plugin)
+  - curl -fsSL https://get.docker.com | sh
 
-  # Install Docker Compose plugin
-  - curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-aarch64 -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-
-  # Create NFS mount point for Immich
-  - mkdir -p /mnt/nas/immich
-
-  # Set correct ownership on docker directories
+  # Clone repo
+  - git clone ${REPO_URL} /home/tariqbk/docker
   - chown -R tariqbk:tariqbk /home/tariqbk/docker
 
-  # Enable and start Docker
-  - systemctl enable docker
-  - systemctl start docker
+  # Phase 1: Portainer
+  - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
 
-  # Enable systemd services
-  - systemctl daemon-reload
-  - systemctl enable pihole-iptables.service
-  - systemctl enable pihole.service
+  # ── Cleanup ───────────────────────────────────────────────────────────────
+  # Remove user-data from the boot partition so secrets don't persist on card
+  - rm -f /boot/firmware/user-data
 
-  # Apply iptables rules
-  - iptables-restore /etc/iptables/rules.v4
-
-  # Start Pi-hole first (DNS must be up before other stacks)
-  - cd /home/tariqbk/docker/pihole && docker compose up -d
-
-  # Wait for Pi-hole to be healthy before starting other stacks
-  - sleep 20
-
-  # Start Portainer
-  - cd /home/tariqbk/docker/portainer && docker compose up -d
-
-  # Start Glances
-  - cd /home/tariqbk/docker/glances && docker compose up -d
-
-  # Start Home Assistant
-  - cd /home/tariqbk/docker/homeassistant && docker compose up -d
-
-  # NOTE: tunnel-stack is NOT started automatically
-  # It requires manual steps first:
-  #   1. Mount NAS: run /home/tariqbk/docker/tunnel-stack/mount-nas.sh
-  #   2. Set Cloudflare tunnel token in tunnel-stack/.env
-  #   3. Then: cd ~/docker/tunnel-stack && docker compose up -d
-
-power_state:
-  mode: reboot
-  delay: 1
-  message: "Rebooting after first boot setup"
+rpi:
+  interfaces:
+    serial: true

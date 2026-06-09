@@ -1,8 +1,11 @@
 # =============================================================================
-# Secrets — never commit real .env files
+# Secrets — never commit real values
 # =============================================================================
 **/.env
 !**/.env.example
+secrets.env
+# Built user-data file (contains real secrets after envsubst)
+/user-data
 # =============================================================================
 # Pi-hole runtime data
 # =============================================================================

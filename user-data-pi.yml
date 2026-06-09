@@ -1,0 +1,25 @@
+#cloud-config
+hostname: pi5
+manage_etc_hosts: true
+packages:
+- avahi-daemon
+apt:
+  conf: |
+    Acquire {
+      Check-Date "false";
+    };
+timezone: America/Chicago
+keyboard:
+  model: pc105
+  layout: "us"
+enable_ssh: true
+users:
+- name: tariqbk
+  groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+  shell: /bin/bash
+  lock_passwd: false
+  passwd: $y$jB5$rVICbBpMsNqMt71J3FIEW/$22QUEJqjZQZM07uXoXdCrGDmmEUDGFS2a8TjvgT2z..
+ssh_pwauth: true
+rpi:
+  interfaces:
+    serial: true
