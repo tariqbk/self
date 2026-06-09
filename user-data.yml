@@ -5,6 +5,12 @@
 # All ${VARIABLE} tokens are replaced by values from secrets.env.
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Output ────────────────────────────────────────────────────────────────────
+# Mirror all cloud-init output to the console (visible on attached monitor)
+# as well as the default log file /var/log/cloud-init-output.log
+output:
+  all: '| tee -a /var/log/cloud-init-output.log /dev/console'
+
 # ── System ────────────────────────────────────────────────────────────────────
 hostname: pi5
 manage_etc_hosts: true
