@@ -4,8 +4,9 @@
 **/.env
 !**/.env.example
 secrets.env
-# Built user-data file (contains real secrets after envsubst)
+# Built cloud-init files (contain real secrets after envsubst)
 /user-data
+/network-config
 # =============================================================================
 # Pi-hole runtime data
 # =============================================================================

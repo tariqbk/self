@@ -1,0 +1,37 @@
+network:
+  # ─────────────────────────────────────────────────────────────────────────
+  # TEMPLATE FILE — do not use directly.
+  # Run ./build-user-data.sh to produce the final network-config file.
+  # All ${VARIABLE} tokens are replaced by values from secrets.env.
+  #
+  # NOTE: Both eth0 and wlan0 are configured with the SAME static IP
+  # (PI_LOCAL_IP). Only connect one interface at a time — if both are
+  # connected simultaneously you will get an IP conflict on the LAN.
+  # ─────────────────────────────────────────────────────────────────────────
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses:
+        - ${PI_LOCAL_IP}/24
+      routes:
+        - to: default
+          via: ${GATEWAY_IP}
+      nameservers:
+        addresses: [1.1.1.1, 1.0.0.1]
+      optional: true
+  wifis:
+    wlan0:
+      dhcp4: false
+      addresses:
+        - ${PI_LOCAL_IP}/24
+      routes:
+        - to: default
+          via: ${GATEWAY_IP}
+      nameservers:
+        addresses: [1.1.1.1, 1.0.0.1]
+      regulatory-domain: "US"
+      access-points:
+        "${WIFI_SSID}":
+          password: "${WIFI_PASSWORD}"
+      optional: true

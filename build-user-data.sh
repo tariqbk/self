@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
-# Merges user-data.yml (template) with secrets.env to produce a final user-data
-# file ready to copy onto the boot partition of an SD card.
+# Merges user-data.yml and network-config.yml (templates) with secrets.env
+# to produce final files ready to copy onto the boot partition of an SD card.
 #
 # Usage:
 #   ./build-user-data.sh
 #
 # Output:
-#   ./user-data   (gitignored — copy this to the boot partition)
+#   ./user-data        (gitignored — copy this to the boot partition)
+#   ./network-config    (gitignored — copy this to the boot partition)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE="$SCRIPT_DIR/user-data.yml"
 SECRETS="$SCRIPT_DIR/secrets.env"
-OUTPUT="$SCRIPT_DIR/user-data"
 
 # ── Checks ────────────────────────────────────────────────────────────────────
 if [[ ! -f "$SECRETS" ]]; then
@@ -38,9 +37,11 @@ set -a
 source "$SECRETS"
 set +a
 
-envsubst < "$TEMPLATE" > "$OUTPUT"
+for name in user-data network-config; do
+  envsubst < "$SCRIPT_DIR/$name.yml" > "$SCRIPT_DIR/$name"
+  echo "✅  $name written to: $SCRIPT_DIR/$name"
+done
 
-echo "✅  user-data written to: $OUTPUT"
 echo ""
-echo "Next: copy $OUTPUT to the boot partition of your SD card,"
-echo "replacing the existing user-data file."
+echo "Next: copy both files to the boot partition of your SD card,"
+echo "replacing the existing user-data and network-config files."

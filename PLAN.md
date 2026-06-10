@@ -2,10 +2,11 @@
 
 ## Goal
 
-A single `user-data` file that, when placed on a freshly flashed Pi OS Lite SD card,
-brings up the entire home server stack on first boot with zero manual steps on the Pi.
-Secrets are kept in a local `secrets.env` file (gitignored). A build script merges
-them into the final `user-data` file before flashing.
+A single `user-data` + `network-config` pair that, when placed on a freshly
+flashed Pi OS Lite SD card, brings up the entire home server stack on first
+boot with zero manual steps on the Pi. Secrets are kept in a local
+`secrets.env` file (gitignored). A build script merges them into the final
+files before flashing.
 
 ---
 
@@ -13,10 +14,11 @@ them into the final `user-data` file before flashing.
 
 | File | In git? | Purpose |
 |---|---|---|
-| `user-data.yml` | ✅ Yes | Template with `${PLACEHOLDER}` tokens |
+| `user-data.yml` | ✅ Yes | cloud-init template with `${PLACEHOLDER}` tokens |
+| `network-config.yml` | ✅ Yes | netplan template (static IP + wifi) with `${PLACEHOLDER}` tokens |
 | `secrets.env.example` | ✅ Yes | Placeholder template for secrets |
 | `secrets.env` | ❌ No | Your real secrets (gitignored) |
-| `build-user-data.sh` | ✅ Yes | Merges template + secrets → final `user-data` |
+| `build-user-data.sh` | ✅ Yes | Merges templates + secrets → final `user-data` / `network-config` |
 | `PLAN.md` | ✅ Yes | This file |
 
 ### Flashing Workflow
@@ -26,8 +28,8 @@ cp secrets.env.example secrets.env
 nano secrets.env
 
 # Every time you flash
-./build-user-data.sh         # outputs ./user-data (gitignored)
-# Copy ./user-data to the boot partition of the SD card, replacing the existing one
+./build-user-data.sh         # outputs ./user-data and ./network-config (gitignored)
+# Copy both files to the boot partition of the SD card, replacing the existing ones
 ```
 
 ---
@@ -61,18 +63,30 @@ nano secrets.env
 
 ### 🔄 Phase 2 — Pi-hole  ← CURRENT
 **Adds to user-data:**
-- Write `pihole/.env` from secrets (`PIHOLE_PASSWORD`)
-- Generate `pihole/etc-pihole/custom.list` with `.home` DNS entries pointing
-  at `PI_LOCAL_IP`
+- Write `pihole/.env` from secrets (`PIHOLE_PASSWORD`, `PI_LOCAL_IP`)
 - Run `docker compose up -d` in `pihole/`
 
+**Adds network-config.yml (new):**
+- Static IP (`PI_LOCAL_IP`) for both `wlan0` and `eth0`, configured directly
+  on the Pi via netplan — no router DHCP reservation needed. Only connect one
+  interface at a time (same static IP on both).
+- WiFi SSID/password (from secrets)
+- Deleted from boot partition after first boot (cleanup step), like `user-data`
+
+**docker-compose.yml fixes (discovered during verification):**
+- `FTLCONF_dns_hosts`: local DNS records for `.home` hostnames (Pi-hole v6
+  doesn't use `custom.list`/dnsmasq anymore)
+- `FTLCONF_dns_listeningMode: "all"`: default `LOCAL` mode rejects DNS queries
+  from LAN devices since their source IP isn't in the docker bridge subnet —
+  caused UDP timeouts / TCP resets from external clients
+
 **Note:** No iptables needed — Pi-hole publishes port 53 directly to the host.
-Point your router's DNS at the Pi's static IP (DHCP reservation required —
-one-time manual step on the router, can't be automated).
+Point your router's DNS at the Pi's static IP.
 
 **Verify before moving on:**
-- [ ] http://pihole.home loads Pi-hole UI (or http://[pi-ip]/admin)
-- [ ] DNS resolution working (nslookup from a device using Pi as DNS)
+- [x] http://pihole.home loads Pi-hole UI (or http://[pi-ip]/admin)
+- [x] DNS resolution working (nslookup from a device using Pi as DNS)
+- [ ] Static IP (192.168.68.2) confirmed after re-flash with network-config
 - [ ] Ad blocking active
 
 ---

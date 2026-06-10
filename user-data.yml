@@ -84,9 +84,10 @@ runcmd:
   - echo "==> Pi-hole started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
-  # Remove user-data from the boot partition so secrets don't persist on card
-  - echo "Setup complete. Cleaning up user-data..."
-  - rm -f /boot/firmware/user-data
+  # Remove user-data and network-config from the boot partition so secrets
+  # (passwords, wifi credentials) don't persist on the card
+  - echo "Setup complete. Cleaning up boot partition..."
+  - rm -f /boot/firmware/user-data /boot/firmware/network-config
   - echo "Done."
 
 rpi:
