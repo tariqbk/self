@@ -61,10 +61,14 @@ nano secrets.env
 
 ### 🔄 Phase 2 — Pi-hole  ← CURRENT
 **Adds to user-data:**
-- Write `pihole/.env` from secrets
+- Write `pihole/.env` from secrets (`PIHOLE_PASSWORD`)
+- Generate `pihole/etc-pihole/custom.list` with `.home` DNS entries pointing
+  at `PI_LOCAL_IP`
 - Run `docker compose up -d` in `pihole/`
-- Apply iptables DNS redirect rules (wlan0 + eth0 → Pi-hole)
-- Save iptables rules, install restore-on-boot service
+
+**Note:** No iptables needed — Pi-hole publishes port 53 directly to the host.
+Point your router's DNS at the Pi's static IP (DHCP reservation required —
+one-time manual step on the router, can't be automated).
 
 **Verify before moving on:**
 - [ ] http://pihole.home loads Pi-hole UI (or http://[pi-ip]/admin)

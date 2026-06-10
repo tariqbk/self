@@ -48,27 +48,49 @@ runcmd:
   # Force NTP time sync first — Pi has no RTC so clock is wrong on first boot.
   # Without this, apt signature verification fails ("not live until ...").
   # systemd-timesyncd is guaranteed present (part of systemd) — no install needed.
-  - echo "[1/4] Waiting for NTP time synchronization..."
+  - echo "==> Waiting for NTP time synchronization..."
   - systemctl start systemd-timesyncd
   - timedatectl set-ntp true
   - until timedatectl show | grep -q 'NTPSynchronized=yes'; do sleep 2; done
-  - echo "[1/4] Time synchronized."
+  - echo "==> Time synchronized."
 
   # Install Docker (official convenience script — installs engine + compose plugin)
-  - echo "[2/4] Installing Docker..."
+  - echo "==> Installing Docker..."
   - curl -fsSL https://get.docker.com | sh
-  - echo "[2/4] Docker installed."
+  - echo "==> Docker installed."
 
   # Clone repo
-  - echo "[3/4] Cloning repo..."
+  - echo "==> Cloning repo..."
   - git clone ${REPO_URL} /home/tariqbk/docker
   - chown -R tariqbk:tariqbk /home/tariqbk/docker
-  - echo "[3/4] Repo cloned."
+  - echo "==> Repo cloned."
 
   # Phase 1: Portainer
-  - echo "[4/4] Starting Portainer..."
+  - echo "==> Starting Portainer..."
   - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
-  - echo "[4/4] Portainer started."
+  - echo "==> Portainer started."
+
+  # Phase 2: Pi-hole
+  - echo "==> Configuring Pi-hole..."
+  - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
+  - |
+    cat > /home/tariqbk/docker/pihole/.env << 'EOF'
+    PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+    EOF
+  - |
+    cat > /home/tariqbk/docker/pihole/etc-pihole/custom.list << 'EOF'
+    ${PI_LOCAL_IP} pihole.home
+    ${PI_LOCAL_IP} portainer.home
+    ${PI_LOCAL_IP} vault.home
+    ${PI_LOCAL_IP} photos.home
+    ${PI_LOCAL_IP} links.home
+    ${PI_LOCAL_IP} ha.home
+    ${PI_LOCAL_IP} glances.home
+    EOF
+  - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
+  - echo "==> Starting Pi-hole..."
+  - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
+  - echo "==> Pi-hole started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data from the boot partition so secrets don't persist on card

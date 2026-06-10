@@ -44,8 +44,7 @@ nano tunnel-stack/.env
 ~/docker/
 ├── pihole/
 │   ├── docker-compose.yml
-│   ├── .env
-│   ├── pihole-dns.sh
+│   ├── .env                  # written by cloud-init on first boot
 │   └── etc-pihole/           # auto-created by Pi-hole on first run
 │       └── custom.list       # local DNS entries (pre-written by cloud-init)
 ├── portainer/
@@ -71,8 +70,8 @@ nano tunnel-stack/.env
 | host | Home Assistant (required for device discovery) |
 | tunnel_net | Vaultwarden, Immich, Linkding, Cloudflared |
 
-Pi-hole, Portainer, and Glances use the default bridge network so Pi-hole's
-iptables rules can route DNS traffic correctly (same issue we solved during setup).
+Pi-hole publishes port 53 directly to the host, so devices that set their DNS
+server to the Pi's IP reach it without any additional routing rules.
 
 Home Assistant uses host networking so it can discover local devices via mDNS,
 Zigbee, Matter, etc.
@@ -85,7 +84,11 @@ exposed to the host for external access (ports are exposed for local access only
 
 ## Local Access (via Pi-hole DNS)
 
-Point your router's DNS to 192.168.68.2 (Pi's IP). Pi-hole will resolve
+The Pi must have a static LAN IP — set up a DHCP reservation for it on your
+router (this repo assumes 192.168.68.2; configurable via `PI_LOCAL_IP` in
+`secrets.env`).
+
+Point your router's DNS to the Pi's IP. Pi-hole will resolve
 these local hostnames automatically via custom.list:
 
 | Service | Local URL |
@@ -112,12 +115,11 @@ these local hostnames automatically via custom.list:
 
 ## First Boot — What Happens Automatically
 
-1. Docker installed
-2. iptables rules applied (wlan0 + eth0 → Pi-hole DNS)
-3. Pi-hole started (DNS active)
+1. NTP time sync
+2. Docker installed
+3. Repo cloned
 4. Portainer started
-5. Glances started
-6. Home Assistant started
+5. Pi-hole started (DNS active, custom.list pre-populated)
 
 ## Manual Steps Required After First Boot
 
@@ -158,20 +160,3 @@ bash ~/docker/tunnel-stack/mount-nas.sh
 cd ~/docker/tunnel-stack
 docker compose up -d
 ```
-
----
-
-## iptables Notes
-
-The iptables rules are saved to /etc/iptables/rules.v4 and restored on boot
-via pihole-iptables.service (runs after docker.service).
-
-Rules cover both wlan0 (WiFi) and eth0 (Ethernet) — switching between them
-requires no changes.
-
-If Pi-hole's container IP ever changes (e.g. after recreating the container),
-update the DNAT destination in /etc/iptables/rules.v4 and run:
-  sudo iptables-restore /etc/iptables/rules.v4
-
-To check the current container IP:
-  docker inspect pihole | grep IPAddress
