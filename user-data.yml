@@ -43,17 +43,21 @@ ssh_pwauth: true
 package_update: true
 package_upgrade: false
 
-# ── Bootstrap ─────────────────────────────────────────────────────────────────
-runcmd:
-  # Force NTP time sync first — Pi has no RTC so clock is wrong on first boot.
-  # Without this, apt signature verification fails ("not live until ...").
-  # systemd-timesyncd is guaranteed present (part of systemd) — no install needed.
+# ── Bootcmd ───────────────────────────────────────────────────────────────────
+# Runs during cloud-init's early "init" stage — BEFORE package_update/upgrade
+# and the `packages` list are processed (those run in the "config" stage).
+# Pi has no RTC, so the clock is wrong on first boot, causing apt signature
+# verification to fail ("not live until ..."). Sync time here so it's correct
+# before any apt operations happen.
+bootcmd:
   - echo "==> Waiting for NTP time synchronization..."
   - systemctl start systemd-timesyncd
   - timedatectl set-ntp true
   - until timedatectl show | grep -q 'NTPSynchronized=yes'; do sleep 2; done
   - echo "==> Time synchronized."
 
+# ── Bootstrap ─────────────────────────────────────────────────────────────────
+runcmd:
   # Install Docker (official convenience script — installs engine + compose plugin)
   - echo "==> Installing Docker..."
   - curl -fsSL https://get.docker.com | sh
