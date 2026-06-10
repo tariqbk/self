@@ -76,16 +76,7 @@ runcmd:
   - |
     cat > /home/tariqbk/docker/pihole/.env << 'EOF'
     PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-    EOF
-  - |
-    cat > /home/tariqbk/docker/pihole/etc-pihole/custom.list << 'EOF'
-    ${PI_LOCAL_IP} pihole.home
-    ${PI_LOCAL_IP} portainer.home
-    ${PI_LOCAL_IP} vault.home
-    ${PI_LOCAL_IP} photos.home
-    ${PI_LOCAL_IP} links.home
-    ${PI_LOCAL_IP} ha.home
-    ${PI_LOCAL_IP} glances.home
+    PI_LOCAL_IP=${PI_LOCAL_IP}
     EOF
   - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
   - echo "==> Starting Pi-hole..."

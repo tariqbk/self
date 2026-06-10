@@ -12,6 +12,11 @@ services:
       FTLCONF_webserver_api_password: "${PIHOLE_PASSWORD}"
       FTLCONF_dns_upstreams: "1.1.1.1;1.0.0.1"
       FTLCONF_dns_dnssec: "true"
+      # Default "local" mode only answers queries from the docker bridge
+      # subnet. Devices on the LAN connect via DNAT (source IP is their real
+      # LAN IP), so FTL must listen on "all" to respond to them.
+      FTLCONF_dns_listeningMode: "all"
+      FTLCONF_dns_hosts: "${PI_LOCAL_IP} pihole.home;${PI_LOCAL_IP} portainer.home;${PI_LOCAL_IP} vault.home;${PI_LOCAL_IP} photos.home;${PI_LOCAL_IP} links.home;${PI_LOCAL_IP} ha.home;${PI_LOCAL_IP} glances.home"
     volumes:
       - './etc-pihole:/etc/pihole'
     cap_add:
