@@ -95,12 +95,18 @@ Point your router's DNS at the Pi's static IP.
 
 ### 🔄 Phase 3 — Home Assistant  ← CURRENT
 **Adds to user-data:**
+- Create `homeassistant/config/` (owned by `tariqbk`)
 - Run `docker compose up -d` in `homeassistant/`
-- Register Pi-hole DNS entry for `ha.home`
+
+**Note:** `ha.home` DNS entry was already added to Pi-hole's `FTLCONF_dns_hosts`
+in Phase 2 — no Pi-hole changes needed here.
 
 **Verify before moving on:**
-- [ ] http://ha.home:8123 loads Home Assistant UI
+- [ ] `docker ps` shows `homeassistant` container running
+- [ ] http://[pi-ip]:8123 loads Home Assistant onboarding (give it a few
+  minutes on first boot — HA core takes time to initialize)
 - [ ] Onboarding flow completes
+- [ ] http://ha.home:8123 works (after router DNS points to Pi)
 
 ---
 
