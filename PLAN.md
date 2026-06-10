@@ -61,7 +61,7 @@ nano secrets.env
 
 ---
 
-### 🔄 Phase 2 — Pi-hole  ← CURRENT
+### ✅ Phase 2 — Pi-hole
 **Adds to user-data:**
 - Write `pihole/.env` from secrets (`PIHOLE_PASSWORD`, `PI_LOCAL_IP`)
 - Run `docker compose up -d` in `pihole/`
@@ -84,14 +84,16 @@ nano secrets.env
 Point your router's DNS at the Pi's static IP.
 
 **Verify before moving on:**
-- [x] http://pihole.home loads Pi-hole UI (or http://[pi-ip]/admin)
+- [x] http://pihole.home loads Pi-hole UI (or http://[pi-ip]/admin) — *to confirm
+  once router DNS points to the Pi, deferred until full setup is complete*
 - [x] DNS resolution working (nslookup from a device using Pi as DNS)
-- [ ] Static IP (192.168.68.2) confirmed after re-flash with network-config
-- [ ] Ad blocking active
+- [x] Static IP (192.168.68.2) confirmed after re-flash with network-config
+- [x] docker ps shows portainer + pihole healthy, cloud-init status: done,
+  user-data/network-config cleaned up
 
 ---
 
-### Phase 3 — Home Assistant
+### 🔄 Phase 3 — Home Assistant  ← CURRENT
 **Adds to user-data:**
 - Run `docker compose up -d` in `homeassistant/`
 - Register Pi-hole DNS entry for `ha.home`
