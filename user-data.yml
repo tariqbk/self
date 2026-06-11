@@ -91,11 +91,13 @@ runcmd:
   - echo "==> Pi-hole started."
 
   # Phase 3: Home Assistant
-  - echo "==> Starting Home Assistant..."
-  - mkdir -p /home/tariqbk/docker/homeassistant/config
-  - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
-  - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
-  - echo "==> Home Assistant started."
+  # TEMPORARILY DISABLED for faster Phase 4 testing iterations — image pull
+  # takes a long time. Re-enable before final/full re-flash.
+  # - echo "==> Starting Home Assistant..."
+  # - mkdir -p /home/tariqbk/docker/homeassistant/config
+  # - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
+  # - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
+  # - echo "==> Home Assistant started."
 
   # Phase 4: Glances
   - echo "==> Starting Glances..."
