@@ -93,7 +93,7 @@ Point your router's DNS at the Pi's static IP.
 
 ---
 
-### 🔄 Phase 3 — Home Assistant  ← CURRENT
+### ✅ Phase 3 — Home Assistant
 **Adds to user-data:**
 - Create `homeassistant/config/` (owned by `tariqbk`)
 - Run `docker compose up -d` in `homeassistant/`
@@ -101,21 +101,35 @@ Point your router's DNS at the Pi's static IP.
 **Note:** `ha.home` DNS entry was already added to Pi-hole's `FTLCONF_dns_hosts`
 in Phase 2 — no Pi-hole changes needed here.
 
+**Time-sync fix:**
+- Time sync now happens as the first `runcmd` step using
+  `systemctl start systemd-timesyncd` + `timedatectl set-ntp true` + polling
+  on `NTPSynchronized=yes`. D-Bus is available by the `runcmd` ("final")
+  stage, so `systemctl`/`timedatectl` work here.
+- `package_update`/`package_upgrade` removed from `user-data.yml` — system
+  updates will be run manually later, after everything is installed.
+- The `packages` list (avahi-daemon, curl, git) still installs in the
+  "config" stage, before `runcmd`'s time sync — `apt: conf: Check-Date
+  "false"` remains as a safety net for that early step.
+
 **Verify before moving on:**
-- [ ] `docker ps` shows `homeassistant` container running
-- [ ] http://[pi-ip]:8123 loads Home Assistant onboarding (give it a few
-  minutes on first boot — HA core takes time to initialize)
+- [x] `docker ps` shows `homeassistant` container running
+- [x] cloud-init status: done, user-data/network-config cleaned up
+- [x] http://[pi-ip]:8123 loads Home Assistant onboarding
 - [ ] Onboarding flow completes
 - [ ] http://ha.home:8123 works (after router DNS points to Pi)
 
 ---
 
-### Phase 4 — Glances
+### 🔄 Phase 4 — Glances  ← CURRENT
 **Adds to user-data:**
 - Run `docker compose up -d` in `glances/`
-- Register Pi-hole DNS entry for `glances.home`
+
+**Note:** `glances.home` DNS entry was already added to Pi-hole's
+`FTLCONF_dns_hosts` in Phase 2 — no Pi-hole changes needed here.
 
 **Verify before moving on:**
+- [ ] `docker ps` shows `glances` container running
 - [ ] http://glances.home:61208 loads Glances UI
 - [ ] Network tab shows eth0 / wlan0
 - [ ] Docker containers visible

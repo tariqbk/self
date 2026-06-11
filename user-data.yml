@@ -19,7 +19,10 @@ packages:
   - curl
   - git
 
-# ── Packages ──────────────────────────────────────────────────────────────────
+# ── Apt ───────────────────────────────────────────────────────────────────────
+# The `packages` list above installs during cloud-init's "config" stage, which
+# runs before `runcmd` (where we sync the clock). Disable apt's signature
+# date check so this early install doesn't fail due to the wrong clock.
 apt:
   conf: |
     Acquire {
@@ -40,34 +43,24 @@ users:
 
 ssh_pwauth: true
 
-package_update: true
-package_upgrade: false
-
-# ── Bootcmd ───────────────────────────────────────────────────────────────────
-# Runs during cloud-init's early "init" stage — BEFORE package_update/upgrade
-# and the `packages` list are processed (those run in the "config" stage).
-# Pi has no RTC, so the clock is wrong on first boot, causing apt signature
-# verification to fail ("not live until ..."). Sync time here so it's correct
-# before any apt operations happen.
-#
-# systemctl/timedatectl require D-Bus, which isn't up yet at this stage, so
-# fetch the current time from an HTTP server's Date header instead. Plain
-# HTTP (not HTTPS) avoids TLS cert validation failing due to the wrong clock.
-bootcmd:
+# ── Bootstrap ─────────────────────────────────────────────────────────────────
+runcmd:
+  # Pi has no RTC, so the clock is wrong on first boot, causing apt/sqv
+  # signature verification failures. Sync time before any apt operations.
+  # D-Bus is available at this stage, so systemctl/timedatectl work here
+  # (unlike in bootcmd's earlier "init" stage).
   - echo "==> Waiting for time synchronization..."
+  - systemctl start systemd-timesyncd
+  - timedatectl set-ntp true
   - |
     for i in $(seq 1 30); do
-      DATE=$(curl -sI --max-time 5 http://google.com | grep -i '^Date:' | cut -d' ' -f2- | tr -d '\r')
-      if [ -n "$DATE" ]; then
-        date -s "$DATE"
+      if [ "$(timedatectl show -p NTPSynchronized --value)" = "yes" ]; then
         break
       fi
       sleep 2
     done
   - echo "==> Time synchronized."
 
-# ── Bootstrap ─────────────────────────────────────────────────────────────────
-runcmd:
   # Install Docker (official convenience script — installs engine + compose plugin)
   - echo "==> Installing Docker..."
   - curl -fsSL https://get.docker.com | sh
@@ -103,6 +96,11 @@ runcmd:
   - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
   - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
   - echo "==> Home Assistant started."
+
+  # Phase 4: Glances
+  - echo "==> Starting Glances..."
+  - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
+  - echo "==> Glances started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data and network-config from the boot partition so secrets
