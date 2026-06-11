@@ -140,9 +140,16 @@ the final full re-flash.
 
 ### 🔄 Phase 5 — Tunnel Stack (Vaultwarden + Immich + Linkding + Cloudflared)  ← CURRENT
 **Adds to user-data:**
-- Mount NAS via NFS (`mount-nas.sh`)
-- Write `tunnel-stack/.env` from secrets
-- Run `docker compose up -d` in `tunnel-stack/`
+- Mount NAS via NFS (`mount-nas.sh ${NAS_IP}`) — NAS NFS share already
+  configured and ready
+- Write `tunnel-stack/.env` from secrets (`LINKDING_SUPERUSER/PASSWORD`,
+  `IMMICH_DB_USER/PASSWORD`, `IMMICH_PHOTOS_PATH`, `CLOUDFLARE_TUNNEL_TOKEN`)
+- Run `docker compose up -d` for `vaultwarden linkding immich-server
+  immich-machine-learning immich-redis immich-postgres` (cloudflared
+  excluded — no tunnel token yet)
+
+**Removed:** `tunnel-stack/pihole-dns.sh` — obsolete `custom.list` approach,
+superseded by `FTLCONF_dns_hosts` in Phase 2.
 
 **Prerequisites (manual, one-time — Cloudflare setup can't be automated):**
 - Cloudflare account with `tariqbk.com` added
@@ -151,13 +158,17 @@ the final full re-flash.
   - `vault.tariqbk.com` → `http://vaultwarden:80`
   - `photos.tariqbk.com` → `http://immich-server:2283`
   - `links.tariqbk.com` → `http://linkding:9090`
-- Tunnel token copied into `secrets.env`
+- Tunnel token copied into `secrets.env` — once set, add `cloudflared` to the
+  `docker compose up -d` service list in `user-data.yml`
 
 **Verify before marking complete:**
-- [ ] https://vault.tariqbk.com loads Vaultwarden
-- [ ] https://photos.tariqbk.com loads Immich
-- [ ] https://links.tariqbk.com loads Linkding
-- [ ] Local access also works via `.home` hostnames
+- [ ] NAS mounted at `/mnt/nas/immich` on the Pi
+- [ ] http://[pi-ip]:8080 loads Vaultwarden
+- [ ] http://[pi-ip]:2283 loads Immich
+- [ ] http://[pi-ip]:9090 loads Linkding
+- [ ] Local access via `.home` hostnames (vault.home, photos.home, links.home)
+- [ ] Cloudflare Tunnel set up, token added, cloudflared started, public URLs
+  work
 
 ---
 

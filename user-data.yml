@@ -104,6 +104,24 @@ runcmd:
   - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
   - echo "==> Glances started."
 
+  # Phase 5: Tunnel stack (Vaultwarden, Linkding, Immich)
+  - echo "==> Mounting NAS for Immich..."
+  - bash /home/tariqbk/docker/tunnel-stack/mount-nas.sh ${NAS_IP}
+  - echo "==> Configuring tunnel stack..."
+  - |
+    cat > /home/tariqbk/docker/tunnel-stack/.env << 'EOF'
+    CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    LINKDING_SUPERUSER=${LINKDING_SUPERUSER}
+    LINKDING_PASSWORD=${LINKDING_PASSWORD}
+    IMMICH_DB_USER=${IMMICH_DB_USER}
+    IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
+    IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
+    EOF
+  - chown -R tariqbk:tariqbk /home/tariqbk/docker/tunnel-stack
+  - echo "==> Starting tunnel stack (cloudflared excluded until tunnel token is set up)..."
+  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d vaultwarden linkding immich-server immich-machine-learning immich-redis immich-postgres
+  - echo "==> Tunnel stack started."
+
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data and network-config from the boot partition so secrets
   # (passwords, wifi credentials) don't persist on the card
