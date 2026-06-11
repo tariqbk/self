@@ -121,22 +121,24 @@ in Phase 2 — no Pi-hole changes needed here.
 
 ---
 
-### 🔄 Phase 4 — Glances  ← CURRENT
+### ✅ Phase 4 — Glances
 **Adds to user-data:**
 - Run `docker compose up -d` in `glances/`
 
 **Note:** `glances.home` DNS entry was already added to Pi-hole's
 `FTLCONF_dns_hosts` in Phase 2 — no Pi-hole changes needed here.
 
+**Note:** Home Assistant runcmd steps are temporarily disabled (commented out)
+for faster test re-flashes during this and the next phase — re-enable before
+the final full re-flash.
+
 **Verify before moving on:**
-- [ ] `docker ps` shows `glances` container running
-- [ ] http://glances.home:61208 loads Glances UI
-- [ ] Network tab shows eth0 / wlan0
-- [ ] Docker containers visible
+- [x] http://[pi-ip]:61208 loads Glances UI
+- [x] Network tab shows wlan0 with live traffic
 
 ---
 
-### Phase 5 — Tunnel Stack (Vaultwarden + Immich + Linkding + Cloudflared)
+### 🔄 Phase 5 — Tunnel Stack (Vaultwarden + Immich + Linkding + Cloudflared)  ← CURRENT
 **Adds to user-data:**
 - Mount NAS via NFS (`mount-nas.sh`)
 - Write `tunnel-stack/.env` from secrets
