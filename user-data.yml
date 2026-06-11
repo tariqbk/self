@@ -49,11 +49,21 @@ package_upgrade: false
 # Pi has no RTC, so the clock is wrong on first boot, causing apt signature
 # verification to fail ("not live until ..."). Sync time here so it's correct
 # before any apt operations happen.
+#
+# systemctl/timedatectl require D-Bus, which isn't up yet at this stage, so
+# fetch the current time from an HTTP server's Date header instead. Plain
+# HTTP (not HTTPS) avoids TLS cert validation failing due to the wrong clock.
 bootcmd:
-  - echo "==> Waiting for NTP time synchronization..."
-  - systemctl start systemd-timesyncd
-  - timedatectl set-ntp true
-  - until timedatectl show | grep -q 'NTPSynchronized=yes'; do sleep 2; done
+  - echo "==> Waiting for time synchronization..."
+  - |
+    for i in $(seq 1 30); do
+      DATE=$(curl -sI --max-time 5 http://google.com | grep -i '^Date:' | cut -d' ' -f2- | tr -d '\r')
+      if [ -n "$DATE" ]; then
+        date -s "$DATE"
+        break
+      fi
+      sleep 2
+    done
   - echo "==> Time synchronized."
 
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
