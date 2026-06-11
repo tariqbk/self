@@ -73,22 +73,26 @@ runcmd:
   - echo "==> Repo cloned."
 
   # Phase 1: Portainer
-  - echo "==> Starting Portainer..."
-  - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
-  - echo "==> Portainer started."
+  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
+  # Re-enable before final/full re-flash.
+  # - echo "==> Starting Portainer..."
+  # - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
+  # - echo "==> Portainer started."
 
   # Phase 2: Pi-hole
-  - echo "==> Configuring Pi-hole..."
-  - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
-  - |
-    cat > /home/tariqbk/docker/pihole/.env << 'EOF'
-    PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-    PI_LOCAL_IP=${PI_LOCAL_IP}
-    EOF
-  - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
-  - echo "==> Starting Pi-hole..."
-  - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
-  - echo "==> Pi-hole started."
+  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
+  # Re-enable before final/full re-flash.
+  # - echo "==> Configuring Pi-hole..."
+  # - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
+  # - |
+  #   cat > /home/tariqbk/docker/pihole/.env << 'EOF'
+  #   PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+  #   PI_LOCAL_IP=${PI_LOCAL_IP}
+  #   EOF
+  # - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
+  # - echo "==> Starting Pi-hole..."
+  # - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
+  # - echo "==> Pi-hole started."
 
   # Phase 3: Home Assistant
   # TEMPORARILY DISABLED for faster Phase 4 testing iterations — image pull
@@ -100,9 +104,11 @@ runcmd:
   # - echo "==> Home Assistant started."
 
   # Phase 4: Glances
-  - echo "==> Starting Glances..."
-  - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
-  - echo "==> Glances started."
+  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
+  # Re-enable before final/full re-flash.
+  # - echo "==> Starting Glances..."
+  # - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
+  # - echo "==> Glances started."
 
   # Phase 5: Tunnel stack (Vaultwarden, Linkding, Immich)
   - echo "==> Mounting NAS for Immich..."
