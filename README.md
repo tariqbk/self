@@ -28,7 +28,6 @@ nano tunnel-stack/.env
 | `user-data.yml` | ✅ Yes | Template, `${PLACEHOLDER}` tokens only |
 | `network-config.yml` | ✅ Yes | Template, `${PLACEHOLDER}` tokens only |
 | `secrets.env.example` | ✅ Yes | Placeholder template, no real values |
-| `cloudflared-config.yml` | ✅ Yes | No secrets |
 | `*.sh` | ✅ Yes | Scripts only |
 | `README.md` / `PLAN.md` | ✅ Yes | Docs |
 | `**/.env.example` | ✅ Yes | Templates, no real values |
@@ -59,7 +58,6 @@ nano tunnel-stack/.env
 └── tunnel-stack/
     ├── docker-compose.yml
     ├── .env                  # fill in secrets before starting
-    ├── cloudflared-config.yml
     └── mount-nas.sh
 ```
 

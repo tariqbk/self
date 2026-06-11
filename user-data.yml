@@ -110,9 +110,8 @@ runcmd:
   # - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
   # - echo "==> Glances started."
 
-  # Phase 5: Tunnel stack (Vaultwarden, Linkding, Immich)
-  - echo "==> Mounting NAS for Immich..."
-  - bash /home/tariqbk/docker/tunnel-stack/mount-nas.sh ${NAS_IP}
+  # Phase 5a: Tunnel stack — Cloudflared + Linkding (first service through the tunnel)
+  # NAS mount + Vaultwarden/Immich come in later sub-phases.
   - echo "==> Configuring tunnel stack..."
   - |
     cat > /home/tariqbk/docker/tunnel-stack/.env << 'EOF'
@@ -124,9 +123,9 @@ runcmd:
     IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
     EOF
   - chown -R tariqbk:tariqbk /home/tariqbk/docker/tunnel-stack
-  - echo "==> Starting tunnel stack (cloudflared excluded until tunnel token is set up)..."
-  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d vaultwarden linkding immich-server immich-machine-learning immich-redis immich-postgres
-  - echo "==> Tunnel stack started."
+  - echo "==> Starting Linkding + Cloudflared..."
+  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d --no-deps linkding cloudflared
+  - echo "==> Linkding + Cloudflared started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data and network-config from the boot partition so secrets
