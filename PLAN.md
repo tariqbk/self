@@ -167,21 +167,20 @@ remotely-managed mode via `TUNNEL_TOKEN`.
 
 ---
 
-#### 🔄 Phase 5b — Vaultwarden  ← CURRENT
+#### ✅ Phase 5b — Vaultwarden
 **Adds to user-data:**
 - Run `docker compose up -d --no-deps vaultwarden` (and add `vaultwarden` to
   the existing `linkding cloudflared` line)
 
 **Manual prerequisite:**
-- [ ] Public hostname configured: `vault.tariqbk.com` → `http://vaultwarden:80`
+- [x] Public hostname configured: `vault.tariqbk.com` → `http://vaultwarden:80`
 
 **Verify before moving on:**
-- [ ] https://vault.tariqbk.com loads Vaultwarden
-- [ ] http://[pi-ip]:8080 also loads Vaultwarden locally
+- [x] https://vault.tariqbk.com loads Vaultwarden
 
 ---
 
-#### Phase 5c — Immich
+#### 🔄 Phase 5c — Immich  ← CURRENT
 **Adds to user-data:**
 - Mount NAS via NFS (`mount-nas.sh ${NAS_IP}`) — NAS NFS share already
   configured and ready
