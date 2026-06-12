@@ -73,42 +73,34 @@ runcmd:
   - echo "==> Repo cloned."
 
   # Phase 1: Portainer
-  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
-  # Re-enable before final/full re-flash.
-  # - echo "==> Starting Portainer..."
-  # - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
-  # - echo "==> Portainer started."
+  - echo "==> Starting Portainer..."
+  - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
+  - echo "==> Portainer started."
 
   # Phase 2: Pi-hole
-  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
-  # Re-enable before final/full re-flash.
-  # - echo "==> Configuring Pi-hole..."
-  # - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
-  # - |
-  #   cat > /home/tariqbk/docker/pihole/.env << 'EOF'
-  #   PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-  #   PI_LOCAL_IP=${PI_LOCAL_IP}
-  #   EOF
-  # - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
-  # - echo "==> Starting Pi-hole..."
-  # - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
-  # - echo "==> Pi-hole started."
+  - echo "==> Configuring Pi-hole..."
+  - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
+  - |
+    cat > /home/tariqbk/docker/pihole/.env << 'EOF'
+    PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+    PI_LOCAL_IP=${PI_LOCAL_IP}
+    EOF
+  - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
+  - echo "==> Starting Pi-hole..."
+  - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
+  - echo "==> Pi-hole started."
 
   # Phase 3: Home Assistant
-  # TEMPORARILY DISABLED for faster Phase 4 testing iterations — image pull
-  # takes a long time. Re-enable before final/full re-flash.
-  # - echo "==> Starting Home Assistant..."
-  # - mkdir -p /home/tariqbk/docker/homeassistant/config
-  # - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
-  # - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
-  # - echo "==> Home Assistant started."
+  - echo "==> Starting Home Assistant..."
+  - mkdir -p /home/tariqbk/docker/homeassistant/config
+  - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
+  - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
+  - echo "==> Home Assistant started."
 
   # Phase 4: Glances
-  # TEMPORARILY DISABLED for faster Phase 5 testing iterations.
-  # Re-enable before final/full re-flash.
-  # - echo "==> Starting Glances..."
-  # - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
-  # - echo "==> Glances started."
+  - echo "==> Starting Glances..."
+  - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
+  - echo "==> Glances started."
 
   # Phase 5: Tunnel stack
   - echo "==> Mounting NAS for Immich..."
@@ -125,7 +117,7 @@ runcmd:
     EOF
   - chown -R tariqbk:tariqbk /home/tariqbk/docker/tunnel-stack
   - echo "==> Starting tunnel stack..."
-  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d --no-deps linkding vaultwarden cloudflared immich-server immich-machine-learning immich-redis immich-postgres
+  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d
   - echo "==> Tunnel stack started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────

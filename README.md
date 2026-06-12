@@ -97,7 +97,7 @@ these local hostnames automatically via custom.list:
 | Pi-hole | http://pihole.home |
 | Portainer | https://portainer.home:9443 |
 | Vaultwarden | http://vault.home:8080 |
-| Immich | http://photos.home:2283 |
+| Immich | http://immich.home:2283 |
 | Linkding | http://links.home:9090 |
 | Home Assistant | http://ha.home:8123 |
 | Glances | http://glances.home:61208 |
@@ -109,7 +109,7 @@ these local hostnames automatically via custom.list:
 | Service | Public URL |
 |---|---|
 | Vaultwarden | https://vault.tariqbk.com |
-| Immich | https://photos.tariqbk.com |
+| Immich | https://immich.tariqbk.com |
 | Linkding | https://links.tariqbk.com |
 
 ---
@@ -153,7 +153,7 @@ bash ~/docker/tunnel-stack/mount-nas.sh
 4. Copy the tunnel token into ~/docker/tunnel-stack/.env
 5. Configure public hostnames in Cloudflare dashboard:
    - vault.tariqbk.com → http://vaultwarden:80
-   - photos.tariqbk.com → http://immich-server:2283
+   - immich.tariqbk.com → http://immich-server:2283
    - links.tariqbk.com → http://linkding:9090
 
 ### 5. Start the tunnel stack

@@ -188,22 +188,23 @@ remotely-managed mode via `TUNNEL_TOKEN`.
   immich-redis immich-postgres` (and add `cloudflared` deps as needed)
 
 **Manual prerequisite:**
-- [ ] Public hostname configured: `photos.tariqbk.com` → `http://immich-server:2283`
+- [x] Public hostname configured: `immich.tariqbk.com` → `http://immich-server:2283`
+  (subdomain changed from `photos` to `immich`)
 
 **Verify before moving on:**
-- [ ] NAS mounted at `/mnt/nas/immich` on the Pi
-- [ ] http://[pi-ip]:2283 loads Immich
-- [ ] https://photos.tariqbk.com loads Immich through the tunnel
+- [x] NAS mounted at `/mnt/nas/immich` on the Pi
+- [x] https://immich.tariqbk.com loads Immich through the tunnel
 
 ---
 
-#### Phase 5d — Final tunnel-stack wiring
-- Once all services verified individually, switch the `runcmd` line to a
-  plain `docker compose up -d` (no `--no-deps`/service list) for the whole
-  `tunnel-stack/` directory
-- Re-enable Portainer, Pi-hole, Glances, Home Assistant in `user-data.yml`
-  (currently commented out for faster test re-flashes)
-- Confirm local `.home` hostnames still work for vault/photos/links
+#### 🔄 Phase 5d — Final tunnel-stack wiring  ← CURRENT
+- [x] Switch the `runcmd` line to a plain `docker compose up -d` (no
+  `--no-deps`/service list) for the whole `tunnel-stack/` directory
+- [x] Re-enable Portainer, Pi-hole, Glances, Home Assistant in `user-data.yml`
+- [ ] Full re-flash: confirm all 8 containers come up (portainer, pihole,
+  homeassistant, glances, linkding, vaultwarden, immich x4, cloudflared)
+- [ ] Confirm local `.home` hostnames work for vault/immich/links
+- [ ] Confirm public hostnames still work for vault/immich/links
 
 ---
 
