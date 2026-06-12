@@ -2,6 +2,7 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer-ce:latest
+    command: --admin-password-file /run/secrets/portainer_plain_password
     network_mode: bridge
     ports:
       - "9443:9443"
@@ -9,7 +10,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    secrets:
+      - portainer_plain_password
     restart: unless-stopped
+secrets:
+  portainer_plain_password:
+    environment: "${PORTAINER_PASSWORD}"
 
 volumes:
   portainer_data:
