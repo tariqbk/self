@@ -138,37 +138,73 @@ the final full re-flash.
 
 ---
 
-### 🔄 Phase 5 — Tunnel Stack (Vaultwarden + Immich + Linkding + Cloudflared)  ← CURRENT
+### Phase 5 — Tunnel Stack (Vaultwarden + Immich + Linkding + Cloudflared)
+Split into sub-phases — bring services up one at a time behind the tunnel.
+
+**Removed:** `tunnel-stack/pihole-dns.sh` — obsolete `custom.list` approach,
+superseded by `FTLCONF_dns_hosts` in Phase 2. Also removed
+`tunnel-stack/cloudflared-config.yml` — unused; ingress rules are configured
+in the Cloudflare dashboard (Public Hostname tab) since `cloudflared` runs in
+remotely-managed mode via `TUNNEL_TOKEN`.
+
+---
+
+#### ✅ Phase 5a — Cloudflare Tunnel + Linkding
+**Manual prerequisites (one-time, can't be automated):**
+- [x] Cloudflare account created, `tariqbk.com` added (nameservers updated at
+  Hover)
+- [x] Tunnel created in Zero Trust dashboard, token copied into `secrets.env`
+  as `CLOUDFLARE_TUNNEL_TOKEN`
+- [x] Public hostname configured: `links.tariqbk.com` → `http://linkding:9090`
+
+**Adds to user-data:**
+- Write `tunnel-stack/.env` from secrets (`CLOUDFLARE_TUNNEL_TOKEN`,
+  `LINKDING_SUPERUSER/PASSWORD`, plus Immich vars for later sub-phases)
+- Run `docker compose up -d --no-deps linkding cloudflared`
+
+**Verify before moving on:**
+- [x] https://links.tariqbk.com loads Linkding through the tunnel
+
+---
+
+#### 🔄 Phase 5b — Vaultwarden  ← CURRENT
+**Adds to user-data:**
+- Run `docker compose up -d --no-deps vaultwarden` (and add `vaultwarden` to
+  the existing `linkding cloudflared` line)
+
+**Manual prerequisite:**
+- [ ] Public hostname configured: `vault.tariqbk.com` → `http://vaultwarden:80`
+
+**Verify before moving on:**
+- [ ] https://vault.tariqbk.com loads Vaultwarden
+- [ ] http://[pi-ip]:8080 also loads Vaultwarden locally
+
+---
+
+#### Phase 5c — Immich
 **Adds to user-data:**
 - Mount NAS via NFS (`mount-nas.sh ${NAS_IP}`) — NAS NFS share already
   configured and ready
-- Write `tunnel-stack/.env` from secrets (`LINKDING_SUPERUSER/PASSWORD`,
-  `IMMICH_DB_USER/PASSWORD`, `IMMICH_PHOTOS_PATH`, `CLOUDFLARE_TUNNEL_TOKEN`)
-- Run `docker compose up -d` for `vaultwarden linkding immich-server
-  immich-machine-learning immich-redis immich-postgres` (cloudflared
-  excluded — no tunnel token yet)
+- Run `docker compose up -d` for `immich-server immich-machine-learning
+  immich-redis immich-postgres` (and add `cloudflared` deps as needed)
 
-**Removed:** `tunnel-stack/pihole-dns.sh` — obsolete `custom.list` approach,
-superseded by `FTLCONF_dns_hosts` in Phase 2.
+**Manual prerequisite:**
+- [ ] Public hostname configured: `photos.tariqbk.com` → `http://immich-server:2283`
 
-**Prerequisites (manual, one-time — Cloudflare setup can't be automated):**
-- Cloudflare account with `tariqbk.com` added
-- Tunnel created in Cloudflare Zero Trust dashboard
-- Public hostnames configured:
-  - `vault.tariqbk.com` → `http://vaultwarden:80`
-  - `photos.tariqbk.com` → `http://immich-server:2283`
-  - `links.tariqbk.com` → `http://linkding:9090`
-- Tunnel token copied into `secrets.env` — once set, add `cloudflared` to the
-  `docker compose up -d` service list in `user-data.yml`
-
-**Verify before marking complete:**
+**Verify before moving on:**
 - [ ] NAS mounted at `/mnt/nas/immich` on the Pi
-- [ ] http://[pi-ip]:8080 loads Vaultwarden
 - [ ] http://[pi-ip]:2283 loads Immich
-- [ ] http://[pi-ip]:9090 loads Linkding
-- [ ] Local access via `.home` hostnames (vault.home, photos.home, links.home)
-- [ ] Cloudflare Tunnel set up, token added, cloudflared started, public URLs
-  work
+- [ ] https://photos.tariqbk.com loads Immich through the tunnel
+
+---
+
+#### Phase 5d — Final tunnel-stack wiring
+- Once all services verified individually, switch the `runcmd` line to a
+  plain `docker compose up -d` (no `--no-deps`/service list) for the whole
+  `tunnel-stack/` directory
+- Re-enable Portainer, Pi-hole, Glances, Home Assistant in `user-data.yml`
+  (currently commented out for faster test re-flashes)
+- Confirm local `.home` hostnames still work for vault/photos/links
 
 ---
 

@@ -123,9 +123,9 @@ runcmd:
     IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
     EOF
   - chown -R tariqbk:tariqbk /home/tariqbk/docker/tunnel-stack
-  - echo "==> Starting Linkding + Cloudflared..."
-  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d --no-deps linkding cloudflared
-  - echo "==> Linkding + Cloudflared started."
+  - echo "==> Starting Linkding + Vaultwarden + Cloudflared..."
+  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d --no-deps linkding vaultwarden cloudflared
+  - echo "==> Linkding + Vaultwarden + Cloudflared started."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
   # Remove user-data and network-config from the boot partition so secrets
