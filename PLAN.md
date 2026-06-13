@@ -201,8 +201,26 @@ remotely-managed mode via `TUNNEL_TOKEN`.
 - [x] Switch the `runcmd` line to a plain `docker compose up -d` (no
   `--no-deps`/service list) for the whole `tunnel-stack/` directory
 - [x] Re-enable Portainer, Pi-hole, Glances, Home Assistant in `user-data.yml`
-- [ ] Full re-flash: confirm all 8 containers come up (portainer, pihole,
-  homeassistant, glances, linkding, vaultwarden, immich x4, cloudflared)
+
+**Refactor: extract `setup.sh`** — moves all Phase 1-5 orchestration out of
+`user-data.yml`'s `runcmd` into a `setup.sh` script in the repo. `runcmd`
+becomes: time sync → install Docker → clone repo → copy `secrets.env` from
+the boot partition onto the Pi's disk (`~/docker/secrets.env`, `chmod 600`)
+→ `bash setup.sh`. `build-user-data.sh` now also instructs copying
+`secrets.env` to the boot partition (read by `setup.sh`, then deleted in
+cleanup along with `user-data`/`network-config`).
+
+Benefit: recovery without re-flashing — `git clone <repo> ~/docker2 && cp
+~/docker/secrets.env ~/docker2/ && bash ~/docker2/setup.sh` brings the whole
+stack back up on a running Pi.
+
+- [x] Create `setup.sh`, slim `user-data.yml`, update `build-user-data.sh`
+  message and README
+- [ ] Full re-flash: confirm all 8 containers come up via `setup.sh`
+  (portainer, pihole, homeassistant, glances, linkding, vaultwarden, immich
+  x4, cloudflared)
+- [ ] Confirm `/boot/firmware/secrets.env` is removed after boot and
+  `~/docker/secrets.env` exists with `600` permissions
 - [ ] Confirm local `.home` hostnames work for vault/immich/links
 - [ ] Confirm public hostnames still work for vault/immich/links
 

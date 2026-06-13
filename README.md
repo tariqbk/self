@@ -20,6 +20,20 @@ cp tunnel-stack/.env.example tunnel-stack/.env
 nano tunnel-stack/.env
 ```
 
+### Recovery without re-flashing
+
+On first boot, cloud-init copies `secrets.env` from the boot partition to
+`~/docker/secrets.env` and runs `setup.sh`, which brings up every service.
+If the Pi is still alive but you need to rebuild the stack (e.g. after wiping
+`~/docker`), `secrets.env` is still on disk, so you can just re-clone and
+rerun:
+
+```bash
+git clone <your-repo-url> ~/docker
+cp /path/to/your/secrets.env ~/docker/   # if ~/docker/secrets.env was lost too
+bash ~/docker/setup.sh
+```
+
 ### What's in git vs what's not
 
 | Path | In git? | Reason |
@@ -28,6 +42,7 @@ nano tunnel-stack/.env
 | `user-data.yml` | ✅ Yes | Template, `${PLACEHOLDER}` tokens only |
 | `network-config.yml` | ✅ Yes | Template, `${PLACEHOLDER}` tokens only |
 | `secrets.env.example` | ✅ Yes | Placeholder template, no real values |
+| `setup.sh` | ✅ Yes | No secrets — sources `secrets.env` at runtime |
 | `*.sh` | ✅ Yes | Scripts only |
 | `README.md` / `PLAN.md` | ✅ Yes | Docs |
 | `**/.env.example` | ✅ Yes | Templates, no real values |
@@ -45,9 +60,11 @@ nano tunnel-stack/.env
 
 ```
 ~/docker/
+├── setup.sh                  # brings up the full stack, reads secrets.env
+├── secrets.env                # copied from boot partition on first boot
 ├── pihole/
 │   ├── docker-compose.yml
-│   ├── .env                  # written by cloud-init on first boot
+│   ├── .env                  # written by setup.sh
 │   └── etc-pihole/           # auto-created by Pi-hole on first run
 ├── portainer/
 │   └── docker-compose.yml
@@ -57,7 +74,7 @@ nano tunnel-stack/.env
 │   └── docker-compose.yml
 └── tunnel-stack/
     ├── docker-compose.yml
-    ├── .env                  # fill in secrets before starting
+    ├── .env                  # written by setup.sh
     └── mount-nas.sh
 ```
 

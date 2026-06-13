@@ -8,6 +8,9 @@
 # Output:
 #   ./user-data        (gitignored — copy this to the boot partition)
 #   ./network-config    (gitignored — copy this to the boot partition)
+#
+# Also copy ./secrets.env to the boot partition — setup.sh reads it on first
+# boot (see user-data.yml).
 
 set -euo pipefail
 
@@ -43,5 +46,7 @@ for name in user-data network-config; do
 done
 
 echo ""
-echo "Next: copy both files to the boot partition of your SD card,"
-echo "replacing the existing user-data and network-config files."
+echo "Next: copy user-data, network-config, and secrets.env to the boot"
+echo "partition of your SD card (replacing the existing user-data and"
+echo "network-config files). secrets.env is read by setup.sh on first boot"
+echo "and then deleted from the boot partition."

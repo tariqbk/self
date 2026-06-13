@@ -72,59 +72,25 @@ runcmd:
   - chown -R tariqbk:tariqbk /home/tariqbk/docker
   - echo "==> Repo cloned."
 
-  # Phase 1: Portainer
-  - echo "==> Starting Portainer..."
-  - docker compose -f /home/tariqbk/docker/portainer/docker-compose.yml up -d
-  - echo "==> Portainer started."
+  # Copy secrets onto the Pi's disk so setup.sh can read them — both now and
+  # on any future manual reruns (recovery without re-flashing)
+  - echo "==> Copying secrets..."
+  - cp /boot/firmware/secrets.env /home/tariqbk/docker/secrets.env
+  - chown tariqbk:tariqbk /home/tariqbk/docker/secrets.env
+  - chmod 600 /home/tariqbk/docker/secrets.env
+  - echo "==> Secrets copied."
 
-  # Phase 2: Pi-hole
-  - echo "==> Configuring Pi-hole..."
-  - mkdir -p /home/tariqbk/docker/pihole/etc-pihole
-  - |
-    cat > /home/tariqbk/docker/pihole/.env << 'EOF'
-    PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
-    PI_LOCAL_IP=${PI_LOCAL_IP}
-    EOF
-  - chown -R tariqbk:tariqbk /home/tariqbk/docker/pihole
-  - echo "==> Starting Pi-hole..."
-  - docker compose -f /home/tariqbk/docker/pihole/docker-compose.yml up -d
-  - echo "==> Pi-hole started."
-
-  # Phase 3: Home Assistant
-  - echo "==> Starting Home Assistant..."
-  - mkdir -p /home/tariqbk/docker/homeassistant/config
-  - chown -R tariqbk:tariqbk /home/tariqbk/docker/homeassistant
-  - docker compose -f /home/tariqbk/docker/homeassistant/docker-compose.yml up -d
-  - echo "==> Home Assistant started."
-
-  # Phase 4: Glances
-  - echo "==> Starting Glances..."
-  - docker compose -f /home/tariqbk/docker/glances/docker-compose.yml up -d
-  - echo "==> Glances started."
-
-  # Phase 5: Tunnel stack
-  - echo "==> Mounting NAS for Immich..."
-  - bash /home/tariqbk/docker/tunnel-stack/mount-nas.sh ${NAS_IP}
-  - echo "==> Configuring tunnel stack..."
-  - |
-    cat > /home/tariqbk/docker/tunnel-stack/.env << 'EOF'
-    CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-    LINKDING_SUPERUSER=${LINKDING_SUPERUSER}
-    LINKDING_PASSWORD=${LINKDING_PASSWORD}
-    IMMICH_DB_USER=${IMMICH_DB_USER}
-    IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
-    IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
-    EOF
-  - chown -R tariqbk:tariqbk /home/tariqbk/docker/tunnel-stack
-  - echo "==> Starting tunnel stack..."
-  - docker compose -f /home/tariqbk/docker/tunnel-stack/docker-compose.yml up -d
-  - echo "==> Tunnel stack started."
+  # Run the full stack setup (Portainer, Pi-hole, Home Assistant, Glances,
+  # tunnel stack — see setup.sh)
+  - echo "==> Running setup.sh..."
+  - bash /home/tariqbk/docker/setup.sh
+  - echo "==> setup.sh complete."
 
   # ── Cleanup ───────────────────────────────────────────────────────────────
-  # Remove user-data and network-config from the boot partition so secrets
-  # (passwords, wifi credentials) don't persist on the card
+  # Remove user-data, network-config, and secrets.env from the boot partition
+  # so secrets (passwords, wifi credentials, tokens) don't persist on the card
   - echo "Setup complete. Cleaning up boot partition..."
-  - rm -f /boot/firmware/user-data /boot/firmware/network-config
+  - rm -f /boot/firmware/user-data /boot/firmware/network-config /boot/firmware/secrets.env
   - echo "Done."
 
 rpi:
