@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 secrets:
   portainer_plain_password:
-    environment: "${PORTAINER_PASSWORD}"
+    environment: "PORTAINER_PASSWORD"
 
 volumes:
   portainer_data:
