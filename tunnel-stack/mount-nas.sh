@@ -29,8 +29,12 @@ else
 fi
 
 # Mount now
-echo "Mounting NFS share..."
-sudo mount "$MOUNT_POINT"
+if mountpoint -q "$MOUNT_POINT"; then
+  echo "Already mounted, skipping mount."
+else
+  echo "Mounting NFS share..."
+  sudo mount "$MOUNT_POINT"
+fi
 
 if mountpoint -q "$MOUNT_POINT"; then
   echo "NFS mount successful: $MOUNT_POINT"
