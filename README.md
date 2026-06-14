@@ -176,6 +176,11 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    - immich.tariqbk.com → http://immich-server:2283
    - links.tariqbk.com → http://linkding:9090
    - jellyfin.tariqbk.com → http://jellyfin:8096
+6. (Optional but recommended for Jellyfin) Add a Cloudflare Access policy
+   for `jellyfin.tariqbk.com`: Zero Trust → Access → Applications → Add an
+   application → Self-hosted → domain `jellyfin.tariqbk.com` → add a policy
+   requiring login (e.g. email One-time PIN for your address). This adds a
+   login wall in front of Jellyfin's own auth.
 
 ### 5. Start the tunnel stack
 ```bash

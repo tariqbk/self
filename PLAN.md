@@ -250,11 +250,17 @@ need to transcode at all.
 - [ ] Create `media` shared folder on Synology NAS (NFS, same permissions as
   `immich` share)
 - [ ] Public hostname configured: `jellyfin.tariqbk.com` → `http://jellyfin:8096`
+- [ ] Configure Cloudflare Access policy for `jellyfin.tariqbk.com`
+  (Zero Trust → Access → Applications → Add an application → Self-hosted;
+  domain `jellyfin.tariqbk.com`; add a policy requiring login, e.g. "Allow"
+  rule matching your email via One-time PIN)
 
 **Verify before moving on:**
 - [ ] `/mnt/nas/media` mounted on the Pi
 - [ ] http://jellyfin.home:8096 (or http://[pi-ip]:8096) loads Jellyfin setup
 - [ ] https://jellyfin.tariqbk.com loads Jellyfin through the tunnel
+- [ ] Visiting https://jellyfin.tariqbk.com prompts for Cloudflare Access
+  login (email OTP) before reaching the Jellyfin login page
 - [ ] Library scan finds media added to the NAS share
 - [ ] Playback works (Direct Play for compatible files)
 
