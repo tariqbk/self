@@ -47,7 +47,7 @@ docker compose -f "$SCRIPT_DIR/glances/docker-compose.yml" up -d
 echo "==> Glances started."
 
 # Phase 5: Tunnel stack
-echo "==> Mounting NAS for Immich..."
+echo "==> Mounting NAS shares for Immich and Jellyfin..."
 bash "$SCRIPT_DIR/tunnel-stack/mount-nas.sh" "${NAS_IP}"
 echo "==> Configuring tunnel stack..."
 cat > "$SCRIPT_DIR/tunnel-stack/.env" << EOF
@@ -57,6 +57,7 @@ LINKDING_PASSWORD=${LINKDING_PASSWORD}
 IMMICH_DB_USER=${IMMICH_DB_USER}
 IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
 IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
+JELLYFIN_MEDIA_PATH=${JELLYFIN_MEDIA_PATH}
 EOF
 chown -R tariqbk:tariqbk "$SCRIPT_DIR/tunnel-stack"
 echo "==> Starting tunnel stack..."

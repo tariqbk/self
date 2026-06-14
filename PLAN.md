@@ -216,13 +216,47 @@ stack back up on a running Pi.
 
 - [x] Create `setup.sh`, slim `user-data.yml`, update `build-user-data.sh`
   message and README
-- [ ] Full re-flash: confirm all 8 containers come up via `setup.sh`
+- [ ] Full re-flash: confirm all 9 containers come up via `setup.sh`
   (portainer, pihole, homeassistant, glances, linkding, vaultwarden, immich
-  x4, cloudflared)
+  x4, jellyfin, cloudflared)
 - [ ] Confirm `/boot/firmware/secrets.env` is removed after boot and
   `~/docker/secrets.env` exists with `600` permissions
-- [ ] Confirm local `.home` hostnames work for vault/immich/links
-- [ ] Confirm public hostnames still work for vault/immich/links
+- [ ] Confirm local `.home` hostnames work for vault/immich/links/jellyfin
+- [ ] Confirm public hostnames still work for vault/immich/links/jellyfin
+
+---
+
+### 🔄 Phase 5e — Jellyfin  ← CURRENT
+**Adds:**
+- Second NAS NFS share (`/volume1/media` → `/mnt/nas/media`), mounted by
+  the generalized `mount-nas.sh` alongside the Immich share
+- `jellyfin` service in `tunnel-stack/docker-compose.yml` (tunnel_net,
+  `/dev/dri` passthrough for V3D-assisted decode/encode where supported,
+  `jellyfin_config`/`jellyfin_cache` volumes, media mounted from
+  `${JELLYFIN_MEDIA_PATH}`)
+- `jellyfin.home` added to Pi-hole's `FTLCONF_dns_hosts`
+- `JELLYFIN_MEDIA_PATH` added to `secrets.env.example` and wired through
+  `setup.sh` into `tunnel-stack/.env`
+
+**Note on transcoding:** Pi 5 doesn't have a dedicated hardware video
+decode block like Pi 4 did — hardware-accelerated transcoding support in
+Jellyfin is limited. `/dev/dri` is passed through since it's low-cost and
+may help with some operations (thumbnails, limited HEVC paths), but for the
+biggest reduction in Pi load, prefer **Direct Play**: keep the media library
+in widely client-compatible formats (H.264/AAC in MP4) so Jellyfin doesn't
+need to transcode at all.
+
+**Manual prerequisites:**
+- [ ] Create `media` shared folder on Synology NAS (NFS, same permissions as
+  `immich` share)
+- [ ] Public hostname configured: `jellyfin.tariqbk.com` → `http://jellyfin:8096`
+
+**Verify before moving on:**
+- [ ] `/mnt/nas/media` mounted on the Pi
+- [ ] http://jellyfin.home:8096 (or http://[pi-ip]:8096) loads Jellyfin setup
+- [ ] https://jellyfin.tariqbk.com loads Jellyfin through the tunnel
+- [ ] Library scan finds media added to the NAS share
+- [ ] Playback works (Direct Play for compatible files)
 
 ---
 

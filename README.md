@@ -86,7 +86,7 @@ bash ~/docker/setup.sh
 |---|---|
 | bridge (default) | Pi-hole, Portainer, Glances |
 | host | Home Assistant (required for device discovery) |
-| tunnel_net | Vaultwarden, Immich, Linkding, Cloudflared |
+| tunnel_net | Vaultwarden, Immich, Linkding, Jellyfin, Cloudflared |
 
 Pi-hole publishes port 53 directly to the host, so devices that set their DNS
 server to the Pi's IP reach it without any additional routing rules.
@@ -95,8 +95,9 @@ Home Assistant uses host networking so it can discover local devices via mDNS,
 Zigbee, Matter, etc.
 
 The tunnel stack uses its own isolated bridge network. Cloudflared reaches
-Vaultwarden, Immich, and Linkding by container name — no ports need to be
-exposed to the host for external access (ports are exposed for local access only).
+Vaultwarden, Immich, Linkding, and Jellyfin by container name — no ports need
+to be exposed to the host for external access (ports are exposed for local
+access only).
 
 ---
 
@@ -118,6 +119,7 @@ these local hostnames automatically via custom.list:
 | Linkding | http://links.home:9090 |
 | Home Assistant | http://ha.home:8123 |
 | Glances | http://glances.home:61208 |
+| Jellyfin | http://jellyfin.home:8096 |
 
 ---
 
@@ -128,6 +130,7 @@ these local hostnames automatically via custom.list:
 | Vaultwarden | https://vault.tariqbk.com |
 | Immich | https://immich.tariqbk.com |
 | Linkding | https://links.tariqbk.com |
+| Jellyfin | https://jellyfin.tariqbk.com |
 
 ---
 
@@ -149,8 +152,8 @@ nano ~/docker/tunnel-stack/.env
 
 ### 2. Set up Synology NAS (do this on the NAS before mounting)
 - Open DSM → Control Panel → File Services → NFS → Enable NFS
-- Create shared folder: `immich` under volume1
-- Edit NFS permissions on the share:
+- Create shared folders: `immich` and `media` under volume1
+- Edit NFS permissions on each share:
   - Hostname/IP: 192.168.68.2 (Pi's IP)
   - Privilege: Read/Write
   - Squash: No mapping (no_root_squash)
@@ -172,6 +175,7 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    - vault.tariqbk.com → http://vaultwarden:80
    - immich.tariqbk.com → http://immich-server:2283
    - links.tariqbk.com → http://linkding:9090
+   - jellyfin.tariqbk.com → http://jellyfin:8096
 
 ### 5. Start the tunnel stack
 ```bash
