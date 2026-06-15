@@ -257,7 +257,7 @@ need to transcode at all.
   subdomains. Cloudflare's free plan doesn't support a `Hostname` field for
   rate limiting rules or the Managed/OWASP WAF rulesets (Pro-only), so this
   zone-wide rule is the free-tier equivalent.
-- [ ] Enable **Bot Fight Mode** (Security → Settings)
+- [x] Enable **Bot Fight Mode** (Security → Settings)
 
 **Note on Cloudflare Access:** an Access login wall was tried in front of
 `jellyfin.tariqbk.com` but breaks the Jellyfin mobile apps — Access
