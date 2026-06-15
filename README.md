@@ -177,14 +177,17 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    - links.tariqbk.com → http://linkding:9090
    - jellyfin.tariqbk.com → http://jellyfin:8096
 6. For Jellyfin, set a strong, unique admin password during its first-run
-   wizard. Then, in the Cloudflare dashboard for tariqbk.com, enable
-   **Bot Fight Mode** (Security → Bots),
-   the **free WAF managed ruleset** (Security → WAF), and a basic **rate
-   limiting rule** for `jellyfin.tariqbk.com` (Security → WAF → Rate limiting
-   rules). A Cloudflare Access login wall was tried here but breaks the
-   Jellyfin mobile apps (Access intercepts their API calls, which can't
-   complete the browser-based login flow) — these toggles plus Jellyfin's
-   own auth are the fallback.
+   wizard. Then, in the Cloudflare dashboard for tariqbk.com (Security →
+   Security rules → Rate limiting rules), add a zone-wide rate limit:
+   `URI Path` `wildcard` `/*`, 100 requests per 10 seconds, action `Block`
+   for 10 seconds. Also enable **Bot Fight Mode** (Security → Settings).
+   Note: the Free plan doesn't offer a `Hostname` field for rate limiting
+   or the Managed/OWASP WAF rulesets (Pro-only), so this zone-wide rule is
+   the free-tier equivalent — it covers all subdomains, not just Jellyfin.
+   A Cloudflare Access login wall was tried here but breaks the Jellyfin
+   mobile apps (Access intercepts their API calls, which can't complete the
+   browser-based login flow) — this rate limit plus Jellyfin's own auth are
+   the fallback.
 
 ### 5. Start the tunnel stack
 ```bash

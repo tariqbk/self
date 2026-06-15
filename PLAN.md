@@ -250,11 +250,14 @@ need to transcode at all.
 - [ ] Create `media` shared folder on Synology NAS (NFS, same permissions as
   `immich` share)
 - [ ] Public hostname configured: `jellyfin.tariqbk.com` → `http://jellyfin:8096`
-- [ ] Set a strong, unique Jellyfin admin password during the first-run wizard
-- [ ] In the Cloudflare dashboard for tariqbk.com: enable **Bot Fight Mode**
-  (Security → Bots), enable the **free WAF managed ruleset**
-  (Security → WAF), and add a basic **rate limiting rule** for
-  `jellyfin.tariqbk.com` (Security → WAF → Rate limiting rules)
+- [x] Set a strong, unique Jellyfin admin password during the first-run wizard
+- [x] In the Cloudflare dashboard for tariqbk.com (Security → Security rules):
+  added a zone-wide **rate limiting rule** (`URI Path` `wildcard` `/*`,
+  100 requests / 10 seconds, action `Block` for 10 seconds) covering all
+  subdomains. Cloudflare's free plan doesn't support a `Hostname` field for
+  rate limiting rules or the Managed/OWASP WAF rulesets (Pro-only), so this
+  zone-wide rule is the free-tier equivalent.
+- [ ] Enable **Bot Fight Mode** (Security → Settings)
 
 **Note on Cloudflare Access:** an Access login wall was tried in front of
 `jellyfin.tariqbk.com` but breaks the Jellyfin mobile apps — Access
