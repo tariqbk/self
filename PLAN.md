@@ -250,17 +250,23 @@ need to transcode at all.
 - [ ] Create `media` shared folder on Synology NAS (NFS, same permissions as
   `immich` share)
 - [ ] Public hostname configured: `jellyfin.tariqbk.com` → `http://jellyfin:8096`
-- [ ] Configure Cloudflare Access policy for `jellyfin.tariqbk.com`
-  (Zero Trust → Access → Applications → Add an application → Self-hosted;
-  domain `jellyfin.tariqbk.com`; add a policy requiring login, e.g. "Allow"
-  rule matching your email via One-time PIN)
+- [ ] Set a strong, unique Jellyfin admin password during the first-run wizard
+- [ ] In the Cloudflare dashboard for tariqbk.com: enable **Bot Fight Mode**
+  (Security → Bots), enable the **free WAF managed ruleset**
+  (Security → WAF), and add a basic **rate limiting rule** for
+  `jellyfin.tariqbk.com` (Security → WAF → Rate limiting rules)
+
+**Note on Cloudflare Access:** an Access login wall was tried in front of
+`jellyfin.tariqbk.com` but breaks the Jellyfin mobile apps — Access
+intercepts the apps' API calls and they can't complete the browser-based
+OTP/SSO flow. Relying on the hardening above plus Jellyfin's own auth
+instead.
 
 **Verify before moving on:**
 - [ ] `/mnt/nas/media` mounted on the Pi
 - [ ] http://jellyfin.home:8096 (or http://[pi-ip]:8096) loads Jellyfin setup
-- [ ] https://jellyfin.tariqbk.com loads Jellyfin through the tunnel
-- [ ] Visiting https://jellyfin.tariqbk.com prompts for Cloudflare Access
-  login (email OTP) before reaching the Jellyfin login page
+- [ ] https://jellyfin.tariqbk.com loads directly (no Access login prompt)
+  in both browser and the Jellyfin mobile app
 - [ ] Library scan finds media added to the NAS share
 - [ ] Playback works (Direct Play for compatible files)
 
