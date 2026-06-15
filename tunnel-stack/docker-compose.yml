@@ -103,6 +103,22 @@ services:
       - /dev/dri:/dev/dri
     restart: unless-stopped
 
+  caddy:
+    container_name: caddy
+    build:
+      context: ./caddy
+    networks:
+      - tunnel_net
+    ports:
+      - "443:443"
+    environment:
+      CLOUDFLARE_DNS_API_TOKEN: "${CLOUDFLARE_DNS_API_TOKEN}"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
   cloudflared:
     container_name: cloudflared
     image: cloudflare/cloudflared:latest
@@ -130,3 +146,5 @@ volumes:
   immich_postgres_data:
   jellyfin_config:
   jellyfin_cache:
+  caddy_data:
+  caddy_config:

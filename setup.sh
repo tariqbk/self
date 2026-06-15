@@ -58,10 +58,11 @@ IMMICH_DB_USER=${IMMICH_DB_USER}
 IMMICH_DB_PASSWORD=${IMMICH_DB_PASSWORD}
 IMMICH_PHOTOS_PATH=${IMMICH_PHOTOS_PATH}
 JELLYFIN_MEDIA_PATH=${JELLYFIN_MEDIA_PATH}
+CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN}
 EOF
 chown -R tariqbk:tariqbk "$SCRIPT_DIR/tunnel-stack"
 echo "==> Starting tunnel stack..."
-docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d
+docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d --build
 echo "==> Tunnel stack started."
 
 echo "==> Setup complete."

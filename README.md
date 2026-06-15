@@ -99,6 +99,17 @@ Vaultwarden, Immich, Linkding, and Jellyfin by container name — no ports need
 to be exposed to the host for external access (ports are exposed for local
 access only).
 
+### Split-horizon DNS for *.tariqbk.com
+
+A `caddy` container in the tunnel stack listens on `${PI_LOCAL_IP}:443` with
+real Let's Encrypt certs (via Cloudflare DNS-01) and reverse-proxies
+`vault/immich/links/jellyfin.tariqbk.com` to the same backend containers
+`cloudflared` uses. Pi-hole resolves those four hostnames to `${PI_LOCAL_IP}`
+for LAN clients, so on home WiFi, traffic to `*.tariqbk.com` stays local and
+hits Caddy directly with a valid cert — no app reconfiguration needed. Off
+the LAN, the same hostnames resolve via public DNS to Cloudflare and continue
+to flow through the tunnel as before.
+
 ---
 
 ## Local Access (via Pi-hole DNS)
@@ -114,12 +125,15 @@ these local hostnames automatically via custom.list:
 |---|---|
 | Pi-hole | http://pihole.home |
 | Portainer | https://portainer.home:9443 |
-| Vaultwarden | http://vault.home:8080 |
-| Immich | http://immich.home:2283 |
-| Linkding | http://links.home:9090 |
 | Home Assistant | http://ha.home:8123 |
 | Glances | http://glances.home:61208 |
-| Jellyfin | http://jellyfin.home:8096 |
+
+The `.home` hostnames above are a simple LAN-only naming scheme for services
+that aren't tunneled. The tunneled services (Vaultwarden, Immich, Linkding,
+Jellyfin) are instead reachable on the LAN via their public `*.tariqbk.com`
+hostnames, which Pi-hole resolves to `${PI_LOCAL_IP}` and which Caddy serves
+with valid HTTPS certs — see [Split-horizon DNS](#split-horizon-dns-for-tariqbkcom)
+above.
 
 ---
 
@@ -189,8 +203,17 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    browser-based login flow) — this rate limit plus Jellyfin's own auth are
    the fallback.
 
-### 5. Start the tunnel stack
+### 5. Set up Caddy for split-horizon local HTTPS
+1. In the Cloudflare dashboard, go to My Profile → API Tokens → Create
+   Token → "Edit zone DNS" template, restricted to the `tariqbk.com` zone
+   only (Zone:DNS:Edit permission).
+2. Add the token to `~/docker/secrets.env` as `CLOUDFLARE_DNS_API_TOKEN`.
+3. While testing, you can uncomment the `acme_ca` staging line in
+   `tunnel-stack/caddy/Caddyfile` to avoid burning Let's Encrypt's
+   production rate limits — remove it once everything works.
+
+### 6. Start the tunnel stack
 ```bash
 cd ~/docker/tunnel-stack
-docker compose up -d
+docker compose up -d --build
 ```

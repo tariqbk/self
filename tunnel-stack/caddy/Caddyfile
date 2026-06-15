@@ -1,0 +1,36 @@
+{
+	# While testing, uncomment the line below to use Let's Encrypt's staging
+	# CA. It issues untrusted test certs but has much higher rate limits, so
+	# repeated `docker compose up --build` runs while iterating won't burn
+	# through the production "duplicate certificate" limit (5 per week for
+	# the same set of hostnames). Remove/comment out once everything works.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+vault.tariqbk.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
+	}
+	reverse_proxy vaultwarden:80
+}
+
+immich.tariqbk.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
+	}
+	reverse_proxy immich-server:2283
+}
+
+links.tariqbk.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
+	}
+	reverse_proxy linkding:9090
+}
+
+jellyfin.tariqbk.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_DNS_API_TOKEN}
+	}
+	reverse_proxy jellyfin:8096
+}

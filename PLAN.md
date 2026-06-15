@@ -267,11 +267,60 @@ instead.
 
 **Verify before moving on:**
 - [ ] `/mnt/nas/media` mounted on the Pi
-- [ ] http://jellyfin.home:8096 (or http://[pi-ip]:8096) loads Jellyfin setup
+- [ ] http://[pi-ip]:8096 loads Jellyfin setup
 - [ ] https://jellyfin.tariqbk.com loads directly (no Access login prompt)
   in both browser and the Jellyfin mobile app
 - [ ] Library scan finds media added to the NAS share
 - [ ] Playback works (Direct Play for compatible files)
+
+---
+
+### Phase 5f — Split-horizon local HTTPS (Caddy)
+**Goal:** when on the home network, `*.tariqbk.com` traffic stays on the
+LAN instead of round-tripping through Cloudflare/the tunnel — while off the
+home network, the same hostnames continue to work via the tunnel as before.
+
+**Mechanism:** split-horizon DNS. Pi-hole answers `vault/immich/links/jellyfin.tariqbk.com`
+with `${PI_LOCAL_IP}` for LAN clients (which already use Pi-hole as their
+resolver). A new `caddy` container in `tunnel-stack` listens on
+`${PI_LOCAL_IP}:443` with real Let's Encrypt certs (via Cloudflare DNS-01,
+no port 80 needed) and reverse-proxies each hostname to its backend
+container — the same containers `cloudflared` already points at. Off the
+LAN, public DNS still resolves to Cloudflare and traffic flows through the
+tunnel unchanged.
+
+**Adds:**
+- `tunnel-stack/caddy/Dockerfile` — Caddy built with the
+  `caddy-dns/cloudflare` plugin via `xcaddy`
+- `tunnel-stack/caddy/Caddyfile` — one site block per hostname
+  (vault/immich/links/jellyfin.tariqbk.com), each with `tls { dns cloudflare
+  ... }` and `reverse_proxy` to the matching container:port. Includes a
+  commented-out `acme_ca` staging directive for testing without burning
+  Let's Encrypt's duplicate-cert rate limit
+- `caddy` service in `tunnel-stack/docker-compose.yml`: builds from
+  `./caddy`, on `tunnel_net`, publishes `443:443` only (no port 80 — no
+  conflict with Pi-hole's `80:80`), `caddy_data`/`caddy_config` volumes for
+  persisted certs
+- `${PI_LOCAL_IP} vault.tariqbk.com;...` entries added to Pi-hole's
+  `FTLCONF_dns_hosts`
+- `CLOUDFLARE_DNS_API_TOKEN` added to `secrets.env.example` and wired
+  through `setup.sh` into `tunnel-stack/.env`; tunnel-stack now started with
+  `up -d --build`
+
+**Manual prerequisite:**
+- [ ] Create a scoped Cloudflare API token (Zone:DNS:Edit, restricted to
+  `tariqbk.com`) and add it to `secrets.env` as `CLOUDFLARE_DNS_API_TOKEN`
+
+**Verify before moving on:**
+- [ ] `docker logs caddy` shows successful cert issuance for all four
+  hostnames
+- [ ] On a device using Pi-hole as DNS: `nslookup jellyfin.tariqbk.com`
+  returns `${PI_LOCAL_IP}`, and `https://jellyfin.tariqbk.com` loads with a
+  valid cert via Caddy → `jellyfin:8096` (repeat for vault/immich/links)
+- [ ] Off the home network, the same hostnames still resolve to Cloudflare
+  and work through the tunnel as before
+- [ ] Jellyfin iPad/Android app works on both home WiFi and cellular with no
+  reconfiguration
 
 ---
 
