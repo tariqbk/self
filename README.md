@@ -1,38 +1,108 @@
 # Pi Home Server Setup
 
-## Git Setup
+## Starting from scratch (fresh SD card)
 
-This repo contains all configuration but no secrets. Secrets are kept in
-`.env` files which are gitignored.
+### Prerequisites
 
-### Clone and configure on a new Pi
+All setup runs from your Mac. The Pi is fully automated via cloud-init on
+first boot — you never need to touch it manually.
+
+### Step 1 — Fill in secrets.env
 
 ```bash
-git clone <your-repo-url> ~/docker
-cd ~/docker
-
-# Pi-hole
-cp pihole/.env.example pihole/.env
-nano pihole/.env
-
-# Tunnel stack
-cp tunnel-stack/.env.example tunnel-stack/.env
-nano tunnel-stack/.env
+cd ~/Dev/Code/SelfHosted    # or wherever you cloned this repo
+cp secrets.env.example secrets.env
+nano secrets.env
 ```
 
-### Recovery without re-flashing
+Fill in every field. Key things you'll need:
+- `USER_PASSWORD_HASH` — generate with:
+  `echo 'yourpassword' | openssl passwd -6 -stdin`
+- `WIFI_PASSWORD` — generate the WPA PSK (see comment in secrets.env.example)
+- `CLOUDFLARE_TUNNEL_TOKEN` — from Cloudflare Zero Trust → Tunnels → your
+  tunnel → Configure (one-time setup, reuse the existing tunnel if it exists)
+- `CLOUDFLARE_DNS_API_TOKEN` — from Cloudflare → My Profile → API Tokens →
+  "Edit zone DNS" template, restricted to tariqbk.com zone only
+- `NAS_IP` — your Synology's LAN IP
 
-On first boot, cloud-init copies `secrets.env` from the boot partition to
-`~/docker/secrets.env` and runs `setup.sh`, which brings up every service.
-If the Pi is still alive but you need to rebuild the stack (e.g. after wiping
-`~/docker`), `secrets.env` is still on disk, so you can just re-clone and
-rerun:
+### Step 2 — Build the boot files
+
+```bash
+./build-user-data.sh
+```
+
+This produces `./user-data` and `./network-config` with your secrets baked in.
+
+### Step 3 — Copy files to the SD card boot partition
+
+Plug the flashed SD card into your Mac. The boot partition mounts as
+`/Volumes/bootfs` (or similar). Copy three files onto it, replacing the
+existing `user-data` placeholder:
+
+```bash
+cp user-data /Volumes/bootfs/user-data
+cp network-config /Volumes/bootfs/network-config
+cp secrets.env /Volumes/bootfs/secrets.env
+```
+
+### Step 4 — Boot the Pi
+
+Insert the SD card and power on. Cloud-init runs automatically on first boot
+(takes ~5–10 minutes) and does everything:
+
+1. Sets hostname, timezone, locale, keyboard
+2. Creates user `tariqbk`, enables SSH
+3. Syncs NTP
+4. Installs Docker
+5. Clones this repo to `~/docker`
+6. Copies `secrets.env` from boot partition to `~/docker/secrets.env`
+7. Runs `bash setup.sh` — starts all 13 containers
+8. Deletes `user-data`, `network-config`, and `secrets.env` from boot partition
+
+### Step 5 — Verify
+
+SSH in once the Pi is reachable (may take a few minutes):
+
+```bash
+ssh tariqbk@192.168.68.2
+docker ps
+```
+
+You should see 13 containers running: `portainer`, `pihole`, `homeassistant`,
+`glances`, `cloudflared`, `caddy`, `vaultwarden`, `linkding`, `immich_server`,
+`immich_ml`, `immich_redis`, `immich_postgres`, `jellyfin`.
+
+Check Caddy got its certs:
+
+```bash
+docker logs caddy | grep "certificate obtained"
+```
+
+Should show 4 lines, one per hostname. If you see staging certs (the
+`acme_ca` line is uncommented in `tunnel-stack/caddy/Caddyfile`), comment it
+out and restart Caddy to get real certs:
+
+```bash
+nano ~/docker/tunnel-stack/caddy/Caddyfile
+docker compose -f ~/docker/tunnel-stack/docker-compose.yml restart caddy
+```
+
+---
+
+## Recovery without re-flashing
+
+If the Pi is still alive but the stack needs rebuilding (e.g. after wiping
+`~/docker`), `secrets.env` is still on disk — just re-clone and rerun:
 
 ```bash
 git clone <your-repo-url> ~/docker
-cp /path/to/your/secrets.env ~/docker/   # if ~/docker/secrets.env was lost too
+cp /path/to/your/secrets.env ~/docker/   # only if secrets.env was lost
 bash ~/docker/setup.sh
 ```
+
+---
+
+## What's in git vs what's not
 
 ### What's in git vs what's not
 
@@ -148,15 +218,7 @@ above.
 
 ---
 
-## First Boot — What Happens Automatically
-
-1. NTP time sync
-2. Docker installed
-3. Repo cloned
-4. Portainer started
-5. Pi-hole started (DNS active, custom.list pre-populated)
-
-## Manual Steps Required After First Boot
+## One-time manual steps (done once, not on every re-flash)
 
 ### 1. Update passwords in .env files
 ```bash
@@ -204,16 +266,12 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    the fallback.
 
 ### 5. Set up Caddy for split-horizon local HTTPS
-1. In the Cloudflare dashboard, go to My Profile → API Tokens → Create
-   Token → "Edit zone DNS" template, restricted to the `tariqbk.com` zone
-   only (Zone:DNS:Edit permission).
-2. Add the token to `~/docker/secrets.env` as `CLOUDFLARE_DNS_API_TOKEN`.
-3. While testing, you can uncomment the `acme_ca` staging line in
-   `tunnel-stack/caddy/Caddyfile` to avoid burning Let's Encrypt's
-   production rate limits — remove it once everything works.
 
-### 6. Start the tunnel stack
-```bash
-cd ~/docker/tunnel-stack
-docker compose up -d --build
-```
+The `CLOUDFLARE_DNS_API_TOKEN` in `secrets.env` handles this automatically
+on first boot — Caddy issues certs via DNS-01 challenge on startup. The only
+manual step is creating the token (once):
+
+1. Cloudflare dashboard → My Profile → API Tokens → Create Token → "Edit
+   zone DNS" template, restricted to the `tariqbk.com` zone (Zone:DNS:Edit)
+2. Add it to `secrets.env` as `CLOUDFLARE_DNS_API_TOKEN` before running
+   `build-user-data.sh`
