@@ -51,6 +51,7 @@ echo "==> Mounting NAS shares for Immich and Jellyfin..."
 bash "$SCRIPT_DIR/tunnel-stack/mount-nas.sh" "${NAS_IP}"
 echo "==> Configuring tunnel stack..."
 cat > "$SCRIPT_DIR/tunnel-stack/.env" << EOF
+BASE_DOMAIN=${BASE_DOMAIN}
 CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
 LINKDING_SUPERUSER=${LINKDING_SUPERUSER}
 LINKDING_PASSWORD=${LINKDING_PASSWORD}

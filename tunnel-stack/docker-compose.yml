@@ -13,8 +13,8 @@ services:
       RELAYHOST: "[smtp.resend.com]:587"
       RELAYHOST_USERNAME: "resend"
       RELAYHOST_PASSWORD: "${SMTP_PASSWORD}"
-      ALLOWED_SENDER_DOMAINS: "tariqbk.com"
-      HOSTNAME: "smtp-relay.tariqbk.com"
+      ALLOWED_SENDER_DOMAINS: "${BASE_DOMAIN}"
+      HOSTNAME: "smtp-relay.${BASE_DOMAIN}"
     restart: unless-stopped
 
   vaultwarden:
@@ -28,7 +28,7 @@ services:
       TZ: "America/Chicago"
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
-      DOMAIN: "https://vault.tariqbk.com"
+      DOMAIN: "https://vault.${BASE_DOMAIN}"
       SMTP_HOST: "smtp-relay"
       SMTP_PORT: "25"
       SMTP_SECURITY: "off"
