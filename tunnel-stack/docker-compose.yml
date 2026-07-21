@@ -28,6 +28,7 @@ services:
       TZ: "America/Chicago"
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
+      DOMAIN: "https://vault.tariqbk.com"
       SMTP_HOST: "smtp-relay"
       SMTP_PORT: "25"
       SMTP_SECURITY: "off"
