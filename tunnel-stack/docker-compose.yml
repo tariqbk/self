@@ -1,5 +1,22 @@
 services:
 
+  smtp-relay:
+    container_name: smtp-relay
+    image: boky/postfix
+    networks:
+      - tunnel_net
+    ports:
+      # Bind to localhost only — tunnel_net containers use smtp-relay:25,
+      # host-networked containers (e.g. Home Assistant) use 127.0.0.1:25.
+      - "127.0.0.1:25:25"
+    environment:
+      RELAYHOST: "[smtp.resend.com]:587"
+      RELAYHOST_USERNAME: "resend"
+      RELAYHOST_PASSWORD: "${SMTP_PASSWORD}"
+      ALLOWED_SENDER_DOMAINS: "tariqbk.com"
+      HOSTNAME: "smtp-relay.tariqbk.com"
+    restart: unless-stopped
+
   vaultwarden:
     container_name: vaultwarden
     image: vaultwarden/server:latest
@@ -11,8 +28,15 @@ services:
       TZ: "America/Chicago"
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
+      SMTP_HOST: "smtp-relay"
+      SMTP_PORT: "25"
+      SMTP_SECURITY: "off"
+      SMTP_FROM: "${SMTP_FROM}"
+      SMTP_FROM_NAME: "Vaultwarden"
     volumes:
       - vaultwarden_data:/data
+    depends_on:
+      - smtp-relay
     restart: unless-stopped
 
   linkding:

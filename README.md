@@ -265,7 +265,24 @@ bash ~/docker/tunnel-stack/mount-nas.sh
    browser-based login flow) — this rate limit plus Jellyfin's own auth are
    the fallback.
 
-### 5. Set up Caddy for split-horizon local HTTPS
+### 5. Add your Resend API key to secrets.env
+
+The `smtp-relay` container forwards all outbound email through
+[Resend](https://resend.com) using your API key. Add to `secrets.env`:
+
+```
+SMTP_PASSWORD=re_xxxxxxxxxxxx   # your Resend API key
+SMTP_FROM=noreply@tariqbk.com
+```
+
+`smtp-relay` listens on port 25 internally and is shared by all services:
+
+| Container location | SMTP host | Port |
+|---|---|---|
+| On `tunnel_net` (Vaultwarden, Immich, etc.) | `smtp-relay` | `25` |
+| Host network (Home Assistant) | `127.0.0.1` | `25` |
+
+### 6. Set up Caddy for split-horizon local HTTPS
 
 The `CLOUDFLARE_DNS_API_TOKEN` in `secrets.env` handles this automatically
 on first boot — Caddy issues certs via DNS-01 challenge on startup. The only
