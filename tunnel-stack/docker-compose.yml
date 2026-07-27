@@ -166,6 +166,7 @@ networks:
 
 volumes:
   vaultwarden_data:
+    external: true
   linkding_data:
   immich_model_cache:
   immich_postgres_data:

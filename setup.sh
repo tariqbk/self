@@ -65,6 +65,9 @@ SMTP_FROM=${SMTP_FROM}
 EOF
 chown -R tariqbk:tariqbk "$SCRIPT_DIR/tunnel-stack"
 echo "==> Starting tunnel stack..."
+# vaultwarden_data is declared external so Compose won't create it automatically.
+# Create it here if it doesn't already exist (e.g. fresh boot before any restore).
+docker volume create tunnel-stack_vaultwarden_data > /dev/null 2>&1 || true
 docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d --build
 echo "==> Tunnel stack started."
 
