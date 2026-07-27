@@ -44,7 +44,7 @@ echo "  │                                                             │"
 echo "  │  This will:                                                 │"
 echo "  │    1. Stop the Vaultwarden container                        │"
 echo "  │    2. Erase all current vault data                          │"
-echo "  │    3. Restore from: $(basename "$BACKUP_FILE")$(printf '%*s' $((29 - ${#BACKUP_FILE##*/})) '')│"
+echo "  │    3. Restore from: $(basename "$BACKUP_FILE")"
 echo "  │    4. Restart Vaultwarden                                   │"
 echo "  │                                                             │"
 echo "  │  Current vault data will be REPLACED. This cannot be       │"
@@ -93,7 +93,8 @@ log "Data restored."
 # ── Restart Vaultwarden ───────────────────────────────────────────────────────
 
 log "Starting Vaultwarden..."
-docker compose -f "$COMPOSE_FILE" start vaultwarden
+# Use 'up -d' rather than 'start' so it creates the container if it was removed
+docker compose -f "$COMPOSE_FILE" up -d vaultwarden
 
 # Wait up to 15 seconds for the container to become healthy/running
 for i in $(seq 1 15); do
