@@ -167,6 +167,7 @@ networks:
 volumes:
   vaultwarden_data:
     external: true
+    name: tunnel-stack_vaultwarden_data
   linkding_data:
   immich_model_cache:
   immich_postgres_data:
