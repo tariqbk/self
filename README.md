@@ -309,7 +309,7 @@ running with no downtime. Backups are stored on the NAS and retained for
 | What | Path |
 |---|---|
 | Backup destination | `/mnt/nas/backups/vaultwarden/` |
-| Filename format | `vaultwarden-YYYY-MM-DD.tar.gz` |
+| Filename format | `vaultwarden-YYYY-MM-DD-HH-MM.tar.gz` |
 | Log file | `~/docker/logs/backup-vaultwarden.log` |
 
 **Check the last backup run:**
@@ -334,14 +334,14 @@ chosen backup, then restarts it. Pick the backup file you want to restore
 from and pass it as an argument:
 
 ```bash
-bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27.tar.gz
+bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27-02-00.tar.gz
 ```
 
 You will be prompted to type `yes` to confirm before anything is changed.
 To skip the prompt (e.g. in a scripted recovery):
 
 ```bash
-bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27.tar.gz -f
+bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27-02-00.tar.gz -f
 ```
 
 After restore, verify your vault at `https://vault.tariqbk.com`.

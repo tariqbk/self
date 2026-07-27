@@ -10,7 +10,7 @@ set -euo pipefail
 
 BACKUP_DIR="/mnt/nas/backups/vaultwarden"
 VOLUME="tunnel-stack_vaultwarden_data"
-DATE="$(date +%Y-%m-%d)"
+DATE="$(date +%Y-%m-%d-%H-%M)"
 ARCHIVE="${BACKUP_DIR}/vaultwarden-${DATE}.tar.gz"
 TMPDIR="$(mktemp -d)"
 RETAIN_DAYS=30
