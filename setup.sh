@@ -47,7 +47,7 @@ docker compose -f "$SCRIPT_DIR/glances/docker-compose.yml" up -d
 echo "==> Glances started."
 
 # Phase 5: Tunnel stack
-echo "==> Mounting NAS shares for Immich and Jellyfin..."
+echo "==> Mounting NAS shares for Immich, Jellyfin, and backups..."
 bash "$SCRIPT_DIR/tunnel-stack/mount-nas.sh" "${NAS_IP}"
 echo "==> Configuring tunnel stack..."
 cat > "$SCRIPT_DIR/tunnel-stack/.env" << EOF
@@ -67,5 +67,17 @@ chown -R tariqbk:tariqbk "$SCRIPT_DIR/tunnel-stack"
 echo "==> Starting tunnel stack..."
 docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d --build
 echo "==> Tunnel stack started."
+
+# Backups
+echo "==> Setting up Vaultwarden backup cron job..."
+mkdir -p "$SCRIPT_DIR/logs"
+chmod +x "$SCRIPT_DIR/backup-vaultwarden.sh"
+chmod +x "$SCRIPT_DIR/restore-vaultwarden.sh"
+# Install cron job for tariqbk user — runs daily at 2 AM
+CRON_JOB="0 2 * * * bash ${SCRIPT_DIR}/backup-vaultwarden.sh >> ${SCRIPT_DIR}/logs/backup-vaultwarden.log 2>&1"
+# Add only if not already present
+( crontab -u tariqbk -l 2>/dev/null | grep -v "backup-vaultwarden"; echo "$CRON_JOB" ) \
+  | crontab -u tariqbk -
+echo "==> Vaultwarden backup cron job installed (daily at 2 AM)."
 
 echo "==> Setup complete."

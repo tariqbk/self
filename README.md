@@ -228,12 +228,14 @@ nano ~/docker/tunnel-stack/.env
 
 ### 2. Set up Synology NAS (do this on the NAS before mounting)
 - Open DSM → Control Panel → File Services → NFS → Enable NFS
-- Create shared folders: `immich` and `media` under volume1
-- Edit NFS permissions on each share:
+- Create shared folders: `immich`, `media`, and `backups` under volume1
+- Edit NFS permissions on each share (same settings for all three):
   - Hostname/IP: 192.168.68.2 (Pi's IP)
   - Privilege: Read/Write
   - Squash: No mapping (no_root_squash)
-  - Enable async: yes
+  - Enable async: ✅
+  - Allow connections from non-privileged ports: ☐
+  - Allow users to access mounted subfolders: ☐
 
 ### 3. Mount the NAS
 ```bash
@@ -292,3 +294,54 @@ manual step is creating the token (once):
    zone DNS" template, restricted to the `tariqbk.com` zone (Zone:DNS:Edit)
 2. Add it to `secrets.env` as `CLOUDFLARE_DNS_API_TOKEN` before running
    `build-user-data.sh`
+
+---
+
+## Backups
+
+### Vaultwarden
+
+`backup-vaultwarden.sh` runs automatically at 2 AM daily via cron (installed
+by `setup.sh`). It performs a live SQLite hot-backup — Vaultwarden keeps
+running with no downtime. Backups are stored on the NAS and retained for
+30 days.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/vaultwarden/` |
+| Filename format | `vaultwarden-YYYY-MM-DD.tar.gz` |
+| Log file | `~/docker/logs/backup-vaultwarden.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-vaultwarden.log
+```
+
+**Run a backup manually:**
+```bash
+bash ~/docker/backup-vaultwarden.sh
+```
+
+**List available backups:**
+```bash
+ls -lh /mnt/nas/backups/vaultwarden/
+```
+
+### Restoring Vaultwarden
+
+The restore script stops Vaultwarden, replaces all vault data with the
+chosen backup, then restarts it. Pick the backup file you want to restore
+from and pass it as an argument:
+
+```bash
+bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27.tar.gz
+```
+
+You will be prompted to type `yes` to confirm before anything is changed.
+To skip the prompt (e.g. in a scripted recovery):
+
+```bash
+bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-2026-07-27.tar.gz -f
+```
+
+After restore, verify your vault at `https://vault.tariqbk.com`.

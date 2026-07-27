@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mounts Synology NAS NFS shares (Immich photos, Jellyfin media)
+# Mounts Synology NAS NFS shares (Immich photos, Jellyfin media, backups)
 # Run once before starting the tunnel-stack
 # Usage: ./mount-nas.sh <nas-ip>
 
@@ -50,5 +50,6 @@ mount_share() {
   fi
 }
 
-mount_share "/volume1/immich" "/mnt/nas/immich"
-mount_share "/volume1/media" "/mnt/nas/media"
+mount_share "/volume1/immich"  "/mnt/nas/immich"
+mount_share "/volume1/media"   "/mnt/nas/media"
+mount_share "/volume1/backups" "/mnt/nas/backups"
