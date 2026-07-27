@@ -67,9 +67,32 @@ tar -czf "$ARCHIVE" -C "$TMPDIR" .
 log "Archive size: $(du -sh "$ARCHIVE" | cut -f1)"
 
 # ── Rotate old backups ────────────────────────────────────────────────────────
+# Age is determined from the date embedded in the filename (YYYY-MM-DD),
+# not from filesystem mtime — mtime can drift if the Pi's clock is wrong.
 
 log "Removing backups older than ${RETAIN_DAYS} days..."
-find "$BACKUP_DIR" -name "vaultwarden-*.tar.gz" -mtime "+${RETAIN_DAYS}" -delete
+NOW_SECONDS="$(date +%s)"
+
+while IFS= read -r f; do
+  fname="$(basename "$f")"
+
+  # Extract the YYYY-MM-DD portion from e.g. vaultwarden-2026-06-15-02-00.tar.gz
+  file_date="$(echo "$fname" | grep -oP '\d{4}-\d{2}-\d{2}')"
+  if [[ -z "$file_date" ]]; then
+    log "WARN: Could not parse date from filename, skipping: ${fname}"
+    continue
+  fi
+
+  # Convert the file's date to epoch seconds, then compute age in whole days
+  file_seconds="$(date -d "$file_date" +%s)"
+  age_days="$(( (NOW_SECONDS - file_seconds) / 86400 ))"
+
+  if [[ "$age_days" -gt "$RETAIN_DAYS" ]]; then
+    log "Deleting ${fname} (${age_days} days old)..."
+    rm "$f"
+  fi
+done < <(find "$BACKUP_DIR" -name "vaultwarden-*.tar.gz")
+
 REMAINING=$(find "$BACKUP_DIR" -name "vaultwarden-*.tar.gz" | wc -l)
 log "Backup rotation complete. ${REMAINING} backup(s) retained."
 
