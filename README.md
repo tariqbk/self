@@ -345,3 +345,49 @@ bash ~/docker/restore-vaultwarden.sh /mnt/nas/backups/vaultwarden/vaultwarden-20
 ```
 
 After restore, verify your vault at `https://vault.tariqbk.com`.
+
+### Pi-hole
+
+`backup-pihole.sh` runs automatically at 2 AM daily via cron. It backs up
+`pihole.toml` (main config) and `custom.list` (local DNS overrides). The
+gravity blocklist database is excluded — it is regenerated automatically on
+restore.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/pihole/` |
+| Filename format | `pihole-YYYY-MM-DD-HH-MM.tar.gz` |
+| Log file | `~/docker/logs/backup-pihole.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-pihole.log
+```
+
+**Run a backup manually:**
+```bash
+bash ~/docker/backup-pihole.sh
+```
+
+**List available backups:**
+```bash
+ls -lh /mnt/nas/backups/pihole/
+```
+
+### Restoring Pi-hole
+
+The restore script stops Pi-hole, replaces `pihole.toml` and `custom.list`,
+restarts it, then automatically runs `pihole -g` to rebuild the gravity
+database (~1 minute).
+
+```bash
+bash ~/docker/restore-pihole.sh /mnt/nas/backups/pihole/pihole-2026-07-27-02-00.tar.gz
+```
+
+To skip the confirmation prompt:
+
+```bash
+bash ~/docker/restore-pihole.sh /mnt/nas/backups/pihole/pihole-2026-07-27-02-00.tar.gz -f
+```
+
+After restore, verify Pi-hole at `http://pihole.home`.

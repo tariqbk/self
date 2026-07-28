@@ -72,15 +72,20 @@ docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d --build
 echo "==> Tunnel stack started."
 
 # Backups
-echo "==> Setting up Vaultwarden backup cron job..."
+echo "==> Setting up backup cron jobs..."
 mkdir -p "$SCRIPT_DIR/logs"
 chmod +x "$SCRIPT_DIR/backup-vaultwarden.sh"
 chmod +x "$SCRIPT_DIR/restore-vaultwarden.sh"
-# Install cron job for tariqbk user — runs daily at 2 AM
-CRON_JOB="0 2 * * * bash ${SCRIPT_DIR}/backup-vaultwarden.sh >> ${SCRIPT_DIR}/logs/backup-vaultwarden.log 2>&1"
-# Add only if not already present
-( crontab -u tariqbk -l 2>/dev/null | grep -v "backup-vaultwarden"; echo "$CRON_JOB" ) \
-  | crontab -u tariqbk -
-echo "==> Vaultwarden backup cron job installed (daily at 2 AM)."
+chmod +x "$SCRIPT_DIR/backup-pihole.sh"
+chmod +x "$SCRIPT_DIR/restore-pihole.sh"
+
+# Build the full crontab: strip any existing backup jobs, then re-add all of them.
+# This makes setup.sh idempotent — re-running it won't duplicate cron entries.
+(
+  crontab -u tariqbk -l 2>/dev/null | grep -v "backup-vaultwarden\|backup-pihole"
+  echo "0 2 * * * bash ${SCRIPT_DIR}/backup-vaultwarden.sh >> ${SCRIPT_DIR}/logs/backup-vaultwarden.log 2>&1"
+  echo "0 2 * * * bash ${SCRIPT_DIR}/backup-pihole.sh >> ${SCRIPT_DIR}/logs/backup-pihole.log 2>&1"
+) | crontab -u tariqbk -
+echo "==> Backup cron jobs installed (daily at 2 AM)."
 
 echo "==> Setup complete."
