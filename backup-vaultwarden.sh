@@ -41,6 +41,7 @@ mkdir -p "$BACKUP_DIR" 2>/dev/null || true
 
 log "Starting SQLite hot-backup..."
 docker run --rm \
+  --user root \
   -v "${VOLUME}:/vw-data:ro" \
   -v "${TMPDIR}:/backup" \
   alpine sh -c "apk add --no-cache --quiet sqlite > /dev/null 2>&1 && \
@@ -51,6 +52,7 @@ log "SQLite backup complete."
 
 log "Copying attachments, sends, and keys..."
 docker run --rm \
+  --user root \
   -v "${VOLUME}:/vw-data:ro" \
   -v "${TMPDIR}:/backup" \
   alpine sh -c "
