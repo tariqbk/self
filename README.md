@@ -435,3 +435,44 @@ sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-2026-0
 ```
 
 After restore, verify Jellyfin at `https://jellyfin.tariqbk.com`.
+
+### Linkding
+
+`backup-linkding.sh` runs automatically at 2 AM daily via cron. It performs
+a live SQLite hot-backup of the bookmarks database and copies the assets
+directory. Linkding keeps running with no downtime.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/linkding/` |
+| Filename format | `linkding-YYYY-MM-DD-HH-MM.tar.gz` |
+| Log file | `~/docker/logs/backup-linkding.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-linkding.log
+```
+
+**Run a backup manually:**
+```bash
+sudo bash ~/docker/backup-linkding.sh >> ~/docker/logs/backup-linkding.log 2>&1
+```
+
+**List available backups:**
+```bash
+sudo ls -lh /mnt/nas/backups/linkding/
+```
+
+### Restoring Linkding
+
+```bash
+sudo bash ~/docker/restore-linkding.sh /mnt/nas/backups/linkding/linkding-2026-07-27-02-00.tar.gz
+```
+
+To skip the confirmation prompt:
+
+```bash
+sudo bash ~/docker/restore-linkding.sh /mnt/nas/backups/linkding/linkding-2026-07-27-02-00.tar.gz -f
+```
+
+After restore, verify Linkding at `https://links.tariqbk.com`.

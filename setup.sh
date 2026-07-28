@@ -69,6 +69,7 @@ echo "==> Starting tunnel stack..."
 # Create it here if it doesn't already exist (e.g. fresh boot before any restore).
 docker volume create tunnel-stack_vaultwarden_data > /dev/null 2>&1 || true
 docker volume create tunnel-stack_jellyfin_config > /dev/null 2>&1 || true
+docker volume create tunnel-stack_linkding_data > /dev/null 2>&1 || true
 docker compose -f "$SCRIPT_DIR/tunnel-stack/docker-compose.yml" up -d --build
 echo "==> Tunnel stack started."
 
@@ -82,14 +83,17 @@ chmod +x "$SCRIPT_DIR/backup-pihole.sh"
 chmod +x "$SCRIPT_DIR/restore-pihole.sh"
 chmod +x "$SCRIPT_DIR/backup-jellyfin.sh"
 chmod +x "$SCRIPT_DIR/restore-jellyfin.sh"
+chmod +x "$SCRIPT_DIR/backup-linkding.sh"
+chmod +x "$SCRIPT_DIR/restore-linkding.sh"
 
 # Build the full crontab: strip any existing backup jobs, then re-add all of them.
 # This makes setup.sh idempotent — re-running it won't duplicate cron entries.
 (
-  crontab -u root -l 2>/dev/null | grep -v "backup-vaultwarden\|backup-pihole\|backup-jellyfin"
+  crontab -u root -l 2>/dev/null | grep -v "backup-vaultwarden\|backup-pihole\|backup-jellyfin\|backup-linkding"
   echo "0 2 * * * bash ${SCRIPT_DIR}/backup-vaultwarden.sh >> ${SCRIPT_DIR}/logs/backup-vaultwarden.log 2>&1"
   echo "0 2 * * * bash ${SCRIPT_DIR}/backup-pihole.sh >> ${SCRIPT_DIR}/logs/backup-pihole.log 2>&1"
   echo "0 2 * * * bash ${SCRIPT_DIR}/backup-jellyfin.sh >> ${SCRIPT_DIR}/logs/backup-jellyfin.log 2>&1"
+  echo "0 2 * * * bash ${SCRIPT_DIR}/backup-linkding.sh >> ${SCRIPT_DIR}/logs/backup-linkding.log 2>&1"
 ) | crontab -u root -
 echo "==> Backup cron jobs installed (daily at 2 AM)."
 

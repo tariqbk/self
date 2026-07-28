@@ -169,6 +169,8 @@ volumes:
     external: true
     name: tunnel-stack_vaultwarden_data
   linkding_data:
+    external: true
+    name: tunnel-stack_linkding_data
   immich_model_cache:
   immich_postgres_data:
   jellyfin_config:
