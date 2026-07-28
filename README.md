@@ -476,3 +476,46 @@ sudo bash ~/docker/restore-linkding.sh /mnt/nas/backups/linkding/linkding-2026-0
 ```
 
 After restore, verify Linkding at `https://links.tariqbk.com`.
+
+### Home Assistant
+
+`backup-homeassistant.sh` runs automatically at 2 AM daily via cron. It backs
+up all essential config files and directories directly from the bind mount.
+Home Assistant keeps running with no downtime. The history database
+(`home-assistant_v2.db`) and logs are excluded — the database is large and
+regenerates from live data.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/homeassistant/` |
+| Filename format | `homeassistant-YYYY-MM-DD-HH-MM.tar.gz` |
+| Log file | `~/docker/logs/backup-homeassistant.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-homeassistant.log
+```
+
+**Run a backup manually:**
+```bash
+sudo bash ~/docker/backup-homeassistant.sh >> ~/docker/logs/backup-homeassistant.log 2>&1
+```
+
+**List available backups:**
+```bash
+sudo ls -lh /mnt/nas/backups/homeassistant/
+```
+
+### Restoring Home Assistant
+
+```bash
+sudo bash ~/docker/restore-homeassistant.sh /mnt/nas/backups/homeassistant/homeassistant-2026-07-27-02-00.tar.gz
+```
+
+To skip the confirmation prompt:
+
+```bash
+sudo bash ~/docker/restore-homeassistant.sh /mnt/nas/backups/homeassistant/homeassistant-2026-07-27-02-00.tar.gz -f
+```
+
+After restore, verify Home Assistant at `http://ha.home:8123`.
