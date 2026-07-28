@@ -35,7 +35,7 @@ if [[ ! -d "$PIHOLE_DATA" ]]; then
   exit 1
 fi
 
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR" 2>/dev/null || true
 
 # ── Bundle config files into archive ─────────────────────────────────────────
 # Only pihole.toml and custom.list are backed up.

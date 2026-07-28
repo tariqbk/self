@@ -33,7 +33,7 @@ if ! docker inspect vaultwarden > /dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR" 2>/dev/null || true
 
 # ── SQLite hot-backup ─────────────────────────────────────────────────────────
 # Run sqlite3 in a temporary container with read-only access to the volume.
