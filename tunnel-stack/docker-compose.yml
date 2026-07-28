@@ -172,6 +172,8 @@ volumes:
   immich_model_cache:
   immich_postgres_data:
   jellyfin_config:
+    external: true
+    name: tunnel-stack_jellyfin_config
   jellyfin_cache:
   caddy_data:
   caddy_config:
