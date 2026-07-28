@@ -391,3 +391,47 @@ bash ~/docker/restore-pihole.sh /mnt/nas/backups/pihole/pihole-2026-07-27-02-00.
 ```
 
 After restore, verify Pi-hole at `http://pihole.home`.
+
+### Jellyfin
+
+`backup-jellyfin.sh` runs automatically at 2 AM daily via cron. It performs
+live SQLite hot-backups of all databases in the config volume, then copies
+config files and plugins. Jellyfin keeps running with no downtime. The cache
+volume and media files are excluded — both regenerate automatically.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/jellyfin/` |
+| Filename format | `jellyfin-YYYY-MM-DD-HH-MM.tar.gz` |
+| Log file | `~/docker/logs/backup-jellyfin.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-jellyfin.log
+```
+
+**Run a backup manually:**
+```bash
+sudo bash ~/docker/backup-jellyfin.sh >> ~/docker/logs/backup-jellyfin.log 2>&1
+```
+
+**List available backups:**
+```bash
+sudo ls -lh /mnt/nas/backups/jellyfin/
+```
+
+### Restoring Jellyfin
+
+The restore script stops Jellyfin, replaces all config data, then restarts it.
+
+```bash
+sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-2026-07-27-02-00.tar.gz
+```
+
+To skip the confirmation prompt:
+
+```bash
+sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-2026-07-27-02-00.tar.gz -f
+```
+
+After restore, verify Jellyfin at `https://jellyfin.tariqbk.com`.

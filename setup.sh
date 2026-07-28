@@ -79,13 +79,16 @@ chmod +x "$SCRIPT_DIR/backup-vaultwarden.sh"
 chmod +x "$SCRIPT_DIR/restore-vaultwarden.sh"
 chmod +x "$SCRIPT_DIR/backup-pihole.sh"
 chmod +x "$SCRIPT_DIR/restore-pihole.sh"
+chmod +x "$SCRIPT_DIR/backup-jellyfin.sh"
+chmod +x "$SCRIPT_DIR/restore-jellyfin.sh"
 
 # Build the full crontab: strip any existing backup jobs, then re-add all of them.
 # This makes setup.sh idempotent — re-running it won't duplicate cron entries.
 (
-  crontab -u root -l 2>/dev/null | grep -v "backup-vaultwarden\|backup-pihole"
+  crontab -u root -l 2>/dev/null | grep -v "backup-vaultwarden\|backup-pihole\|backup-jellyfin"
   echo "0 2 * * * bash ${SCRIPT_DIR}/backup-vaultwarden.sh >> ${SCRIPT_DIR}/logs/backup-vaultwarden.log 2>&1"
   echo "0 2 * * * bash ${SCRIPT_DIR}/backup-pihole.sh >> ${SCRIPT_DIR}/logs/backup-pihole.log 2>&1"
+  echo "0 2 * * * bash ${SCRIPT_DIR}/backup-jellyfin.sh >> ${SCRIPT_DIR}/logs/backup-jellyfin.log 2>&1"
 ) | crontab -u root -
 echo "==> Backup cron jobs installed (daily at 2 AM)."
 
