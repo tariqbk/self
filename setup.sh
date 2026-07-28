@@ -74,6 +74,7 @@ echo "==> Tunnel stack started."
 # Backups
 echo "==> Setting up backup cron jobs..."
 mkdir -p "$SCRIPT_DIR/logs"
+chown tariqbk:tariqbk "$SCRIPT_DIR/logs"
 chmod +x "$SCRIPT_DIR/backup-vaultwarden.sh"
 chmod +x "$SCRIPT_DIR/restore-vaultwarden.sh"
 chmod +x "$SCRIPT_DIR/backup-pihole.sh"
