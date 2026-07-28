@@ -23,6 +23,16 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') ${LOG_PREFIX} $*"; }
 cleanup() { rm -rf "$TMPDIR"; }
 trap cleanup EXIT
 
+# ── Read database credentials from tunnel-stack/.env ─────────────────────────
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/tunnel-stack/.env"
+[[ ! -f "$ENV_FILE" ]] && { log "ERROR: tunnel-stack/.env not found."; exit 1; }
+
+IMMICH_DB_USER="$(grep IMMICH_DB_USER "$ENV_FILE" | cut -d= -f2)"
+IMMICH_DB_PASSWORD="$(grep IMMICH_DB_PASSWORD "$ENV_FILE" | cut -d= -f2)"
+[[ -z "$IMMICH_DB_USER" || -z "$IMMICH_DB_PASSWORD" ]] && { log "ERROR: Could not read DB credentials from tunnel-stack/.env"; exit 1; }
+
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
 
 if ! mountpoint -q /mnt/nas/backups; then
@@ -46,11 +56,11 @@ log "Starting pg_dumpall..."
 docker run --rm \
   --network tunnel_net \
   -v "${TMPDIR}:/backup" \
-  -e PGPASSWORD="${IMMICH_DB_PASSWORD:-}" \
+  -e PGPASSWORD="${IMMICH_DB_PASSWORD}" \
   ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0 \
   pg_dumpall \
     --host=immich-postgres \
-    --username=postgres \
+    --username="${IMMICH_DB_USER}" \
     --file=/backup/immich_dump.sql
 
 log "pg_dumpall complete. Dump size: $(du -sh "${TMPDIR}/immich_dump.sql" | cut -f1)"

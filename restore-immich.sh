@@ -37,8 +37,9 @@ if ! docker inspect immich_postgres > /dev/null 2>&1; then
 fi
 
 # Read DB password from the tunnel-stack .env
+IMMICH_DB_USER="$(grep IMMICH_DB_USER "${SCRIPT_DIR}/tunnel-stack/.env" | cut -d= -f2)"
 IMMICH_DB_PASSWORD="$(grep IMMICH_DB_PASSWORD "${SCRIPT_DIR}/tunnel-stack/.env" | cut -d= -f2)"
-[[ -z "$IMMICH_DB_PASSWORD" ]] && fail "Could not read IMMICH_DB_PASSWORD from tunnel-stack/.env"
+[[ -z "$IMMICH_DB_USER" || -z "$IMMICH_DB_PASSWORD" ]] && fail "Could not read DB credentials from tunnel-stack/.env"
 
 BACKUP_FILE="$(realpath "$BACKUP_FILE")"
 TMPDIR="$(mktemp -d)"
@@ -95,11 +96,11 @@ docker run --rm \
   ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0 \
   psql \
     --host=immich-postgres \
-    --username=postgres \
+    --username="${IMMICH_DB_USER}" \
     --dbname=postgres \
     -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='immich';" \
     -c "DROP DATABASE IF EXISTS immich;" \
-    -c "CREATE DATABASE immich OWNER postgres;"
+    -c "CREATE DATABASE immich OWNER ${IMMICH_DB_USER};"
 
 log "Restoring from SQL dump..."
 docker run --rm \
@@ -109,7 +110,7 @@ docker run --rm \
   ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0 \
   psql \
     --host=immich-postgres \
-    --username=postgres \
+    --username="${IMMICH_DB_USER}" \
     --dbname=immich \
     --file=/restore/immich_dump.sql
 
