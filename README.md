@@ -519,3 +519,50 @@ sudo bash ~/docker/restore-homeassistant.sh /mnt/nas/backups/homeassistant/homea
 ```
 
 After restore, verify Home Assistant at `http://ha.home:8123`.
+
+### Immich
+
+`backup-immich.sh` runs automatically at 2 AM daily via cron. It performs a
+full `pg_dumpall` of the PostgreSQL instance with no downtime. Photos and
+videos on the NAS are not touched — they are already safe there. The ML model
+cache is excluded — it regenerates automatically.
+
+| What | Path |
+|---|---|
+| Backup destination | `/mnt/nas/backups/immich/` |
+| Filename format | `immich-YYYY-MM-DD-HH-MM.tar.gz` |
+| Log file | `~/docker/logs/backup-immich.log` |
+
+**Check the last backup run:**
+```bash
+tail -30 ~/docker/logs/backup-immich.log
+```
+
+**Run a backup manually:**
+```bash
+sudo bash ~/docker/backup-immich.sh >> ~/docker/logs/backup-immich.log 2>&1
+```
+
+**List available backups:**
+```bash
+sudo ls -lh /mnt/nas/backups/immich/
+```
+
+### Restoring Immich
+
+The restore script stops Immich server and machine learning, drops and
+recreates the database, restores from the SQL dump, then restarts all
+services. Photos on the NAS are untouched. ML re-indexing runs automatically
+in the background after restart.
+
+```bash
+sudo bash ~/docker/restore-immich.sh /mnt/nas/backups/immich/immich-2026-07-27-02-00.tar.gz
+```
+
+To skip the confirmation prompt:
+
+```bash
+sudo bash ~/docker/restore-immich.sh /mnt/nas/backups/immich/immich-2026-07-27-02-00.tar.gz -f
+```
+
+After restore, verify Immich at `https://immich.tariqbk.com`.
