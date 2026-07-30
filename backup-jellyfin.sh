@@ -43,8 +43,13 @@ mkdir -p "$BACKUP_DIR" 2>/dev/null || true
 # Backs up all .db files found in /config/data/.
 
 log "Starting SQLite hot-backup of all databases..."
+# Mount read-write so we can run a WAL checkpoint before backup.
+# The checkpoint flushes all pending WAL transactions into the main .db file,
+# ensuring the backup is self-contained and doesn't rely on the -wal file
+# being present after restore (Jellyfin discards stale -wal files on startup).
 docker run --rm \
-  -v "${VOLUME}:/config:ro" \
+  --user root \
+  -v "${VOLUME}:/config" \
   -v "${TMPDIR}:/backup" \
   alpine sh -c "
     apk add --no-cache --quiet sqlite > /dev/null 2>&1
@@ -52,7 +57,8 @@ docker run --rm \
     for db in /config/data/*.db; do
       [ -f \"\$db\" ] || continue
       fname=\"\$(basename \"\$db\")\"
-      echo \"Backing up \$fname...\"
+      echo \"Checkpointing and backing up \$fname...\"
+      sqlite3 \"\$db\" 'PRAGMA wal_checkpoint(TRUNCATE);'
       sqlite3 \"\$db\" \".backup '/backup/data/\$fname'\"
     done
   "
