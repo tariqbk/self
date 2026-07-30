@@ -394,16 +394,21 @@ After restore, verify Pi-hole at `http://pihole.home`.
 
 ### Jellyfin
 
-`backup-jellyfin.sh` runs automatically at 2 AM daily via cron. It performs
-live SQLite hot-backups of all databases in the config volume, then copies
-config files and plugins. Jellyfin keeps running with no downtime. The cache
-volume and media files are excluded — both regenerate automatically.
+`backup-jellyfin.sh` runs automatically at 2 AM daily via cron. It triggers
+Jellyfin's native backup API, which exports the database and config as a zip.
+The zip is copied to the NAS and then deleted from the Jellyfin volume —
+the NAS is the only retention store. Jellyfin keeps running with no downtime.
+Media files are excluded (they live on the NAS already).
 
 | What | Path |
 |---|---|
 | Backup destination | `/mnt/nas/backups/jellyfin/` |
-| Filename format | `jellyfin-YYYY-MM-DD-HH-MM.tar.gz` |
+| Filename format | `jellyfin-YYYY-MM-DD-HH-MM.zip` |
+| Retention | 30 days (date parsed from filename) |
 | Log file | `~/docker/logs/backup-jellyfin.log` |
+
+**Prerequisites:** `JELLYFIN_API_KEY` must be set in `tunnel-stack/.env`.
+Generate one at Dashboard → API Keys → + → name it `backup-script`.
 
 **Check the last backup run:**
 ```bash
@@ -422,19 +427,25 @@ sudo ls -lh /mnt/nas/backups/jellyfin/
 
 ### Restoring Jellyfin
 
-The restore script stops Jellyfin, replaces all config data, then restarts it.
+The restore script is fully automated — no manual steps required. It wipes
+the config volume, boots Jellyfin, completes the setup wizard via API,
+triggers the native restore, and waits for Jellyfin to restart with all
+original users and libraries restored.
 
 ```bash
-sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-2026-07-27-02-00.tar.gz
+sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-YYYY-MM-DD-HH-MM.zip
 ```
 
 To skip the confirmation prompt:
 
 ```bash
-sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-2026-07-27-02-00.tar.gz -f
+sudo bash ~/docker/restore-jellyfin.sh /mnt/nas/backups/jellyfin/jellyfin-YYYY-MM-DD-HH-MM.zip -f
 ```
 
-After restore, verify Jellyfin at `https://jellyfin.tariqbk.com`.
+After restore, log in at `https://jellyfin.tariqbk.com` with your original
+credentials. Metadata (posters, artwork) re-fetches automatically in the
+background via scheduled tasks — this may take a few minutes to an hour
+depending on library size.
 
 ### Linkding
 
