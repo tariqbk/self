@@ -84,7 +84,6 @@ log "Backup zip placed at /config/data/backups/${BACKUP_FILENAME}"
 log "Starting Jellyfin..."
 docker compose -f "$COMPOSE_FILE" up -d jellyfin
 
-# Wait for the HTTP server to be ready (up to 60 seconds)
 log "Waiting for Jellyfin to be ready..."
 for i in $(seq 1 60); do
   if curl -sf "${JELLYFIN_URL}/health" > /dev/null 2>&1; then
@@ -97,20 +96,30 @@ log "Jellyfin is up."
 
 # ── Complete setup wizard via API ─────────────────────────────────────────────
 # These endpoints are unauthenticated — only available during first-run wizard.
+# The GET /Startup/User call is required to prime the wizard state before POST.
 
 log "Completing setup wizard..."
 
 curl -sf -X POST "${JELLYFIN_URL}/Startup/Configuration" \
   -H "Content-Type: application/json" \
   -d '{"UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}' \
-  > /dev/null
+  > /dev/null || fail "POST /Startup/Configuration failed"
+
+curl -sf "${JELLYFIN_URL}/Startup/User" > /dev/null \
+  || fail "GET /Startup/User failed"
 
 curl -sf -X POST "${JELLYFIN_URL}/Startup/User" \
   -H "Content-Type: application/json" \
   -d "{\"Name\":\"${TEMP_USER}\",\"Password\":\"${TEMP_PASS}\"}" \
-  > /dev/null
+  > /dev/null || fail "POST /Startup/User failed"
 
-curl -sf -X POST "${JELLYFIN_URL}/Startup/Complete" > /dev/null
+curl -sf -X POST "${JELLYFIN_URL}/Startup/RemoteAccess" \
+  -H "Content-Type: application/json" \
+  -d '{"EnableRemoteAccess":true,"EnableAutomaticPortMapping":false}' \
+  > /dev/null || fail "POST /Startup/RemoteAccess failed"
+
+curl -sf -X POST "${JELLYFIN_URL}/Startup/Complete" > /dev/null \
+  || fail "POST /Startup/Complete failed"
 
 log "Setup wizard complete."
 
@@ -129,19 +138,16 @@ log "Authenticated."
 # ── Trigger restore ───────────────────────────────────────────────────────────
 
 log "Triggering restore from ${BACKUP_FILENAME}..."
-RESTORE_RESPONSE=$(curl -sf -o /dev/null -w "%{http_code}" \
+RESTORE_HTTP=$(curl -sf -o /dev/null -w "%{http_code}" \
   -X POST "${JELLYFIN_URL}/Backup/Restore" \
   -H "Authorization: MediaBrowser Token=\"${TOKEN}\"" \
   -H "Content-Type: application/json" \
-  -d "{\"BackupPath\":\"/config/data/backups/${BACKUP_FILENAME}\"}")
+  -d "{\"ArchiveFileName\":\"${BACKUP_FILENAME}\"}")
 
-if [[ "$RESTORE_RESPONSE" != "204" && "$RESTORE_RESPONSE" != "200" ]]; then
-  fail "Restore API returned HTTP ${RESTORE_RESPONSE}. Check docker logs jellyfin."
-fi
+[[ "$RESTORE_HTTP" != "204" ]] && fail "Restore API returned HTTP ${RESTORE_HTTP}. Check: docker logs jellyfin"
+log "Restore triggered. Waiting for Jellyfin to restart..."
 
-log "Restore triggered (HTTP ${RESTORE_RESPONSE}). Waiting for Jellyfin to restart..."
-
-# Jellyfin restarts itself after restore — wait for it to go down then come back
+# Jellyfin restarts itself after restore — wait for it to go down then come back up
 sleep 5
 for i in $(seq 1 60); do
   if curl -sf "${JELLYFIN_URL}/health" > /dev/null 2>&1; then
