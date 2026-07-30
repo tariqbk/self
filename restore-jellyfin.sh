@@ -79,9 +79,10 @@ docker run --rm \
   alpine sh -c "
     rm -rf /config/*
 
-    [ -d /restore/data ]    && cp -r /restore/data    /config/
-    [ -d /restore/config ]  && cp -r /restore/config  /config/
-    [ -d /restore/plugins ] && cp -r /restore/plugins /config/
+    [ -d /restore/data ]     && cp -r /restore/data     /config/
+    [ -d /restore/config ]   && cp -r /restore/config   /config/
+    [ -d /restore/plugins ]  && cp -r /restore/plugins  /config/
+    [ -d /restore/metadata ] && cp -r /restore/metadata /config/
   "
 log "Data restored."
 

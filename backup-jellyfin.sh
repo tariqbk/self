@@ -68,13 +68,14 @@ log "SQLite backup complete."
 # Copies xml config files and plugins. Excludes logs — they are not needed
 # for a restore and can be large.
 
-log "Copying config files and plugins..."
+log "Copying config files, plugins, and metadata..."
 docker run --rm \
   -v "${VOLUME}:/config:ro" \
   -v "${TMPDIR}:/backup" \
   alpine sh -c "
-    [ -d /config/config ]  && cp -r /config/config  /backup/ || true
-    [ -d /config/plugins ] && cp -r /config/plugins /backup/ || true
+    [ -d /config/config ]   && cp -r /config/config   /backup/ || true
+    [ -d /config/plugins ]  && cp -r /config/plugins  /backup/ || true
+    [ -d /config/metadata ] && cp -r /config/metadata /backup/ || true
   "
 
 # ── Bundle into archive ───────────────────────────────────────────────────────
