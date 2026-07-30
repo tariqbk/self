@@ -1,6 +1,7 @@
 #!/bin/bash
 # Restore Jellyfin from a native backup zip (created by Jellyfin's backup API).
-# Stops Jellyfin, restores the zip into the config volume, then restarts it.
+# Fully automated: places the zip, boots Jellyfin, completes the setup wizard
+# via API, triggers restore, and waits for Jellyfin to come back up.
 #
 # Usage:
 #   bash ~/docker/restore-jellyfin.sh <path-to-backup.zip>
@@ -11,6 +12,12 @@ set -euo pipefail
 VOLUME="tunnel-stack_jellyfin_config"
 COMPOSE_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tunnel-stack/docker-compose.yml"
 LOG_PREFIX="[jellyfin-restore]"
+JELLYFIN_URL="http://localhost:8096"
+
+# Temporary admin created just to authenticate and trigger the restore.
+# The restore overwrites this account with the backed-up users.
+TEMP_USER="restore-admin"
+TEMP_PASS="Restore-$(date +%s)!"
 
 log()  { echo "$(date '+%Y-%m-%d %H:%M:%S') ${LOG_PREFIX} $*"; }
 fail() { log "ERROR: $*"; exit 1; }
@@ -25,6 +32,7 @@ for arg in "$@"; do [[ "$arg" == "-f" ]] && FORCE=true; done
 [[ ! -f "$BACKUP_FILE" ]] && fail "Backup file not found: ${BACKUP_FILE}"
 
 BACKUP_FILE="$(realpath "$BACKUP_FILE")"
+BACKUP_FILENAME="$(basename "$BACKUP_FILE")"
 
 # ── Confirmation ──────────────────────────────────────────────────────────────
 
@@ -33,10 +41,13 @@ echo "  ┌───────────────────────
 echo "  │  JELLYFIN RESTORE                                           │"
 echo "  │                                                             │"
 echo "  │  This will:                                                 │"
-echo "  │    1. Stop the Jellyfin container                           │"
-echo "  │    2. Place the backup zip into the config volume           │"
-echo "  │    3. Restart Jellyfin (it will restore on startup)         │"
-echo "  │    3. Restore from: $(basename "$BACKUP_FILE")"
+echo "  │    1. Stop Jellyfin and wipe its config volume              │"
+echo "  │    2. Place the backup zip into the volume                  │"
+echo "  │    3. Boot Jellyfin and complete the setup wizard via API   │"
+echo "  │    4. Trigger the native restore via API                    │"
+echo "  │    5. Wait for Jellyfin to restart with restored data       │"
+echo "  │                                                             │"
+echo "  │  Restore from: $(basename "$BACKUP_FILE")"
 echo "  │                                                             │"
 echo "  │  Current config will be REPLACED. This cannot be undone    │"
 echo "  │  unless you have another backup.                            │"
@@ -55,15 +66,9 @@ log "Stopping Jellyfin..."
 docker compose -f "$COMPOSE_FILE" stop jellyfin
 log "Jellyfin stopped."
 
-# ── Place zip into volume for Jellyfin to restore on startup ──────────────────
-# Jellyfin's native restore works by placing the zip back into /config/data/backups/
-# and then using the dashboard to trigger restore — OR by resetting config and
-# letting Jellyfin pick up the zip on startup via its restore prompt.
-# We wipe the config volume and place only the zip so Jellyfin presents the
-# restore screen on first launch.
+# ── Place zip into volume ─────────────────────────────────────────────────────
 
-log "Placing backup zip into volume ${VOLUME}..."
-BACKUP_FILENAME="$(basename "$BACKUP_FILE")"
+log "Wiping config volume and placing backup zip..."
 docker run --rm \
   -v "${VOLUME}:/config" \
   -v "$(dirname "$BACKUP_FILE"):/source:ro" \
@@ -72,30 +77,82 @@ docker run --rm \
     mkdir -p /config/data/backups
     cp /source/${BACKUP_FILENAME} /config/data/backups/${BACKUP_FILENAME}
   "
-log "Backup zip placed."
+log "Backup zip placed at /config/data/backups/${BACKUP_FILENAME}"
 
-# ── Restart Jellyfin ──────────────────────────────────────────────────────────
+# ── Start Jellyfin ────────────────────────────────────────────────────────────
 
 log "Starting Jellyfin..."
-# Use 'up -d' rather than 'start' so it creates the container if it was removed
 docker compose -f "$COMPOSE_FILE" up -d jellyfin
 
-# Wait up to 30 seconds for the container to become running
-for i in $(seq 1 30); do
-  STATUS="$(docker inspect -f '{{.State.Status}}' jellyfin 2>/dev/null || echo 'unknown')"
-  [[ "$STATUS" == "running" ]] && break
-  sleep 1
+# Wait for the HTTP server to be ready (up to 60 seconds)
+log "Waiting for Jellyfin to be ready..."
+for i in $(seq 1 60); do
+  if curl -sf "${JELLYFIN_URL}/health" > /dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+  [[ "$i" -eq 60 ]] && fail "Jellyfin did not become ready in time. Check: docker logs jellyfin"
+done
+log "Jellyfin is up."
+
+# ── Complete setup wizard via API ─────────────────────────────────────────────
+# These endpoints are unauthenticated — only available during first-run wizard.
+
+log "Completing setup wizard..."
+
+curl -sf -X POST "${JELLYFIN_URL}/Startup/Configuration" \
+  -H "Content-Type: application/json" \
+  -d '{"UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}' \
+  > /dev/null
+
+curl -sf -X POST "${JELLYFIN_URL}/Startup/User" \
+  -H "Content-Type: application/json" \
+  -d "{\"Name\":\"${TEMP_USER}\",\"Password\":\"${TEMP_PASS}\"}" \
+  > /dev/null
+
+curl -sf -X POST "${JELLYFIN_URL}/Startup/Complete" > /dev/null
+
+log "Setup wizard complete."
+
+# ── Authenticate to get a token ───────────────────────────────────────────────
+
+log "Authenticating as temporary admin..."
+AUTH_RESPONSE=$(curl -sf -X POST "${JELLYFIN_URL}/Users/AuthenticateByName" \
+  -H "Content-Type: application/json" \
+  -H 'X-Emby-Authorization: MediaBrowser Client="restore-script", Device="pi", DeviceId="restore", Version="1.0"' \
+  -d "{\"Username\":\"${TEMP_USER}\",\"Pw\":\"${TEMP_PASS}\"}")
+
+TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"AccessToken":"[^"]*"' | cut -d'"' -f4)
+[[ -z "$TOKEN" ]] && fail "Failed to authenticate. Response: ${AUTH_RESPONSE}"
+log "Authenticated."
+
+# ── Trigger restore ───────────────────────────────────────────────────────────
+
+log "Triggering restore from ${BACKUP_FILENAME}..."
+RESTORE_RESPONSE=$(curl -sf -o /dev/null -w "%{http_code}" \
+  -X POST "${JELLYFIN_URL}/Backup/Restore" \
+  -H "Authorization: MediaBrowser Token=\"${TOKEN}\"" \
+  -H "Content-Type: application/json" \
+  -d "{\"BackupPath\":\"/config/data/backups/${BACKUP_FILENAME}\"}")
+
+if [[ "$RESTORE_RESPONSE" != "204" && "$RESTORE_RESPONSE" != "200" ]]; then
+  fail "Restore API returned HTTP ${RESTORE_RESPONSE}. Check docker logs jellyfin."
+fi
+
+log "Restore triggered (HTTP ${RESTORE_RESPONSE}). Waiting for Jellyfin to restart..."
+
+# Jellyfin restarts itself after restore — wait for it to go down then come back
+sleep 5
+for i in $(seq 1 60); do
+  if curl -sf "${JELLYFIN_URL}/health" > /dev/null 2>&1; then
+    break
+  fi
+  sleep 3
+  [[ "$i" -eq 60 ]] && fail "Jellyfin did not come back up after restore. Check: docker logs jellyfin"
 done
 
-STATUS="$(docker inspect -f '{{.State.Status}}' jellyfin 2>/dev/null || echo 'unknown')"
-if [[ "$STATUS" == "running" ]]; then
-  log "Jellyfin is running."
-  echo ""
-  echo "  Next steps:"
-  echo "    1. Open https://jellyfin.tariqbk.com"
-  echo "    2. Jellyfin will show a restore prompt — select the backup to restore."
-  echo "    3. After restore completes, Jellyfin will restart automatically."
-  echo ""
-else
-  fail "Jellyfin did not come up (status: ${STATUS}). Check logs: docker logs jellyfin"
-fi
+log "Jellyfin is back up."
+echo ""
+echo "  Restore complete. Log in at https://jellyfin.tariqbk.com"
+echo "  with your original credentials."
+echo ""
