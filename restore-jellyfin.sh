@@ -94,9 +94,18 @@ for i in $(seq 1 60); do
 done
 log "Jellyfin is up."
 
-# Brief pause — Jellyfin reports healthy before the startup wizard is fully
-# initialized, so wizard API calls immediately after health check return errors.
-sleep 5
+# ── Wait for startup wizard to be ready ───────────────────────────────────────
+# Jellyfin reports /health OK before the wizard API is initialized.
+# Poll GET /Startup/Configuration until it returns 200.
+
+log "Waiting for startup wizard to be ready..."
+for i in $(seq 1 30); do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${JELLYFIN_URL}/Startup/Configuration")
+  [[ "$STATUS" == "200" ]] && break
+  sleep 2
+  [[ "$i" -eq 30 ]] && fail "Startup wizard did not become ready in time."
+done
+log "Startup wizard is ready."
 
 # ── Complete setup wizard via API ─────────────────────────────────────────────
 # These endpoints are unauthenticated — only available during first-run wizard.
