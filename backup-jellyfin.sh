@@ -96,6 +96,14 @@ docker run --rm \
   alpine cp "/config/data/backups/$(basename "$BACKUP_FILE")" "/nas/jellyfin-${DATE}.zip"
 log "Archive size: $(du -sh "$ARCHIVE" | cut -f1)"
 
+# ── Remove backup from Jellyfin volume ───────────────────────────────────────
+# Once copied to NAS, the zip inside the volume serves no purpose.
+
+log "Removing backup from Jellyfin volume..."
+docker run --rm \
+  -v "${VOLUME}:/config" \
+  alpine rm -f "/config/data/backups/$(basename "$BACKUP_FILE")"
+
 # ── Rotate old backups ────────────────────────────────────────────────────────
 # Age is determined from the date embedded in the filename (YYYY-MM-DD),
 # not from filesystem mtime — mtime can drift if the Pi's clock is wrong.
