@@ -1,10 +1,10 @@
 #!/bin/bash
-# Restore Jellyfin from a backup tarball.
-# Stops Jellyfin, replaces all config data, then restarts it.
+# Restore Jellyfin from a native backup zip (created by Jellyfin's backup API).
+# Stops Jellyfin, restores the zip into the config volume, then restarts it.
 #
 # Usage:
-#   bash ~/docker/restore-jellyfin.sh <path-to-backup.tar.gz>
-#   bash ~/docker/restore-jellyfin.sh <path-to-backup.tar.gz> -f   # skip confirmation
+#   bash ~/docker/restore-jellyfin.sh <path-to-backup.zip>
+#   bash ~/docker/restore-jellyfin.sh <path-to-backup.zip> -f   # skip confirmation
 
 set -euo pipefail
 
@@ -21,19 +21,10 @@ BACKUP_FILE="${1:-}"
 FORCE=false
 for arg in "$@"; do [[ "$arg" == "-f" ]] && FORCE=true; done
 
-[[ -z "$BACKUP_FILE" ]] && fail "No backup file specified.\nUsage: $0 <path-to-backup.tar.gz> [-f]"
+[[ -z "$BACKUP_FILE" ]] && fail "No backup file specified.\nUsage: $0 <path-to-backup.zip> [-f]"
 [[ ! -f "$BACKUP_FILE" ]] && fail "Backup file not found: ${BACKUP_FILE}"
 
-# ── Pre-flight checks ─────────────────────────────────────────────────────────
-
-if ! mountpoint -q /mnt/nas/backups; then
-  fail "/mnt/nas/backups is not mounted. Mount the NAS first."
-fi
-
 BACKUP_FILE="$(realpath "$BACKUP_FILE")"
-TMPDIR="$(mktemp -d)"
-cleanup() { rm -rf "$TMPDIR"; }
-trap cleanup EXIT
 
 # ── Confirmation ──────────────────────────────────────────────────────────────
 
@@ -43,9 +34,9 @@ echo "  │  JELLYFIN RESTORE                                           │"
 echo "  │                                                             │"
 echo "  │  This will:                                                 │"
 echo "  │    1. Stop the Jellyfin container                           │"
-echo "  │    2. Erase all current config data                         │"
+echo "  │    2. Place the backup zip into the config volume           │"
+echo "  │    3. Restart Jellyfin (it will restore on startup)         │"
 echo "  │    3. Restore from: $(basename "$BACKUP_FILE")"
-echo "  │    4. Restart Jellyfin                                      │"
 echo "  │                                                             │"
 echo "  │  Current config will be REPLACED. This cannot be undone    │"
 echo "  │  unless you have another backup.                            │"
@@ -64,27 +55,24 @@ log "Stopping Jellyfin..."
 docker compose -f "$COMPOSE_FILE" stop jellyfin
 log "Jellyfin stopped."
 
-# ── Extract backup ────────────────────────────────────────────────────────────
+# ── Place zip into volume for Jellyfin to restore on startup ──────────────────
+# Jellyfin's native restore works by placing the zip back into /config/data/backups/
+# and then using the dashboard to trigger restore — OR by resetting config and
+# letting Jellyfin pick up the zip on startup via its restore prompt.
+# We wipe the config volume and place only the zip so Jellyfin presents the
+# restore screen on first launch.
 
-log "Extracting backup: ${BACKUP_FILE}"
-tar -xzf "$BACKUP_FILE" -C "$TMPDIR"
-log "Extraction complete."
-
-# ── Restore into volume ───────────────────────────────────────────────────────
-
-log "Restoring data into volume ${VOLUME}..."
+log "Placing backup zip into volume ${VOLUME}..."
+BACKUP_FILENAME="$(basename "$BACKUP_FILE")"
 docker run --rm \
   -v "${VOLUME}:/config" \
-  -v "${TMPDIR}:/restore:ro" \
+  -v "$(dirname "$BACKUP_FILE"):/source:ro" \
   alpine sh -c "
     rm -rf /config/*
-
-    [ -d /restore/data ]     && cp -r /restore/data     /config/
-    [ -d /restore/config ]   && cp -r /restore/config   /config/
-    [ -d /restore/plugins ]  && cp -r /restore/plugins  /config/
-    [ -d /restore/metadata ] && cp -r /restore/metadata /config/
+    mkdir -p /config/data/backups
+    cp /source/${BACKUP_FILENAME} /config/data/backups/${BACKUP_FILENAME}
   "
-log "Data restored."
+log "Backup zip placed."
 
 # ── Restart Jellyfin ──────────────────────────────────────────────────────────
 
@@ -92,8 +80,8 @@ log "Starting Jellyfin..."
 # Use 'up -d' rather than 'start' so it creates the container if it was removed
 docker compose -f "$COMPOSE_FILE" up -d jellyfin
 
-# Wait up to 15 seconds for the container to become running
-for i in $(seq 1 15); do
+# Wait up to 30 seconds for the container to become running
+for i in $(seq 1 30); do
   STATUS="$(docker inspect -f '{{.State.Status}}' jellyfin 2>/dev/null || echo 'unknown')"
   [[ "$STATUS" == "running" ]] && break
   sleep 1
@@ -103,7 +91,10 @@ STATUS="$(docker inspect -f '{{.State.Status}}' jellyfin 2>/dev/null || echo 'un
 if [[ "$STATUS" == "running" ]]; then
   log "Jellyfin is running."
   echo ""
-  echo "  Restore complete. Verify Jellyfin at https://jellyfin.tariqbk.com"
+  echo "  Next steps:"
+  echo "    1. Open https://jellyfin.tariqbk.com"
+  echo "    2. Jellyfin will show a restore prompt — select the backup to restore."
+  echo "    3. After restore completes, Jellyfin will restart automatically."
   echo ""
 else
   fail "Jellyfin did not come up (status: ${STATUS}). Check logs: docker logs jellyfin"
