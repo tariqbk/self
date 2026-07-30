@@ -94,6 +94,10 @@ for i in $(seq 1 60); do
 done
 log "Jellyfin is up."
 
+# Brief pause — Jellyfin reports healthy before the startup wizard is fully
+# initialized, so wizard API calls immediately after health check return errors.
+sleep 5
+
 # ── Complete setup wizard via API ─────────────────────────────────────────────
 # These endpoints are unauthenticated — only available during first-run wizard.
 # The GET /Startup/User call is required to prime the wizard state before POST.
