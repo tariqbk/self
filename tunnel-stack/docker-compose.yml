@@ -135,7 +135,10 @@ services:
     networks:
       - tunnel_net
     ports:
+      - "80:80"
       - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       CLOUDFLARE_DNS_API_TOKEN: "${CLOUDFLARE_DNS_API_TOKEN}"
     volumes:

@@ -5,6 +5,7 @@ services:
     command: --admin-password-file /run/secrets/portainer_plain_password
     network_mode: bridge
     ports:
+      - "9000:9000"
       - "9443:9443"
       - "8000:8000"
     volumes:

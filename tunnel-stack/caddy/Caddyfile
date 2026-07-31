@@ -34,3 +34,29 @@ jellyfin.tariqbk.com {
 	}
 	reverse_proxy jellyfin:8096
 }
+
+# ── Local .home services (HTTP only, LAN access) ──────────────────────────────
+
+http://glances.home {
+	reverse_proxy host.docker.internal:61208
+}
+
+http://ha.home {
+	reverse_proxy host.docker.internal:8123
+}
+
+http://pihole.home {
+	redir / /admin 302
+	reverse_proxy host.docker.internal:8880
+}
+
+http://portainer.home {
+	reverse_proxy host.docker.internal:9000
+}
+
+# Catch-all: any HTTP request not matched above goes to Pi-hole.
+# This preserves the ad-block redirect page — blocked domains resolve to
+# the Pi's IP, the browser hits port 80, and Caddy forwards it to Pi-hole.
+http:// {
+	reverse_proxy host.docker.internal:8880
+}
