@@ -169,16 +169,30 @@ Vaultwarden, Immich, Linkding, and Jellyfin by container name — no ports need
 to be exposed to the host for external access (ports are exposed for local
 access only).
 
-### Split-horizon DNS for *.tariqbk.com
+### Split-horizon DNS for *.tariqbk.com and *.home
 
-A `caddy` container in the tunnel stack listens on `${PI_LOCAL_IP}:443` with
-real Let's Encrypt certs (via Cloudflare DNS-01) and reverse-proxies
-`vault/immich/links/jellyfin.tariqbk.com` to the same backend containers
-`cloudflared` uses. Pi-hole resolves those four hostnames to `${PI_LOCAL_IP}`
-for LAN clients, so on home WiFi, traffic to `*.tariqbk.com` stays local and
-hits Caddy directly with a valid cert — no app reconfiguration needed. Off
-the LAN, the same hostnames resolve via public DNS to Cloudflare and continue
-to flow through the tunnel as before.
+Caddy handles two classes of local traffic:
+
+**`*.tariqbk.com` (HTTPS, port 443):** Caddy holds real Let's Encrypt certs
+(via Cloudflare DNS-01) and reverse-proxies the four tunneled services.
+Pi-hole resolves those hostnames to `${PI_LOCAL_IP}` for LAN clients, so on
+home WiFi, traffic stays local and hits Caddy with a valid cert. Off the LAN,
+the same hostnames route through the Cloudflare tunnel as before.
+
+**`*.home` (HTTP, port 80):** Caddy reverse-proxies LAN-only services that
+aren't exposed via Cloudflare. Pi-hole resolves these hostnames to
+`${PI_LOCAL_IP}` via `FTLCONF_dns_hosts`. Pi-hole's web UI runs on port 8880
+internally; Caddy's catch-all HTTP block forwards any unmatched request (e.g.
+ad-block redirect pages) to Pi-hole on 8880, preserving the block page.
+
+Home Assistant requires Caddy to be declared a trusted proxy. This is
+configured in `~/docker/homeassistant/config/configuration.yaml`:
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.18.0.0/16
+```
 
 ---
 
@@ -186,24 +200,18 @@ to flow through the tunnel as before.
 
 The Pi must have a static LAN IP — set up a DHCP reservation for it on your
 router (this repo assumes 192.168.68.2; configurable via `PI_LOCAL_IP` in
-`secrets.env`).
-
-Point your router's DNS to the Pi's IP. Pi-hole will resolve
-these local hostnames automatically via custom.list:
+`secrets.env`). Point your router's DNS to the Pi's IP.
 
 | Service | Local URL |
 |---|---|
 | Pi-hole | http://pihole.home |
-| Portainer | https://portainer.home:9443 |
-| Home Assistant | http://ha.home:8123 |
-| Glances | http://glances.home:61208 |
-
-The `.home` hostnames above are a simple LAN-only naming scheme for services
-that aren't tunneled. The tunneled services (Vaultwarden, Immich, Linkding,
-Jellyfin) are instead reachable on the LAN via their public `*.tariqbk.com`
-hostnames, which Pi-hole resolves to `${PI_LOCAL_IP}` and which Caddy serves
-with valid HTTPS certs — see [Split-horizon DNS](#split-horizon-dns-for-tariqbkcom)
-above.
+| Portainer | http://portainer.home |
+| Home Assistant | http://ha.home |
+| Glances | http://glances.home |
+| Vaultwarden | https://vault.tariqbk.com |
+| Immich | https://immich.tariqbk.com |
+| Linkding | https://links.tariqbk.com |
+| Jellyfin | https://jellyfin.tariqbk.com |
 
 ---
 
