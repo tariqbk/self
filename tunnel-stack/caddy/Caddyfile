@@ -51,7 +51,11 @@ http://pihole.home {
 }
 
 http://portainer.home {
-	reverse_proxy host.docker.internal:9000
+	reverse_proxy https://host.docker.internal:9443 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
 }
 
 # Catch-all: any HTTP request not matched above goes to Pi-hole.
