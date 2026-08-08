@@ -61,6 +61,16 @@ runcmd:
     done
   - echo "==> Time synchronized."
 
+  # Enable automatic security updates
+  - echo "==> Enabling unattended-upgrades..."
+  - apt-get install -y unattended-upgrades
+  - echo 'APT::Periodic::Update-Package-Lists "1";' > /etc/apt/apt.conf.d/20auto-upgrades
+  - echo 'APT::Periodic::Unattended-Upgrade "1";' >> /etc/apt/apt.conf.d/20auto-upgrades
+  - sed -i 's|//Unattended-Upgrade::Automatic-Reboot "false";|Unattended-Upgrade::Automatic-Reboot "true";|' /etc/apt/apt.conf.d/50unattended-upgrades
+  - sed -i 's|//Unattended-Upgrade::Automatic-Reboot-Time "02:00";|Unattended-Upgrade::Automatic-Reboot-Time "03:00";|' /etc/apt/apt.conf.d/50unattended-upgrades
+  - systemctl enable --now unattended-upgrades
+  - echo "==> Unattended-upgrades enabled."
+
   # Install Docker (official convenience script — installs engine + compose plugin)
   - echo "==> Installing Docker..."
   - curl -fsSL https://get.docker.com | sh
