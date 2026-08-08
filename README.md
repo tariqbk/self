@@ -305,6 +305,46 @@ manual step is creating the token (once):
 
 ---
 
+## Maintenance
+
+### OS updates
+
+`unattended-upgrades` is enabled on first boot and runs automatically. It
+installs security updates daily (~6:50am) and reboots at 3am if the update
+requires it (kernel, libc, etc.). Docker containers are not affected by OS
+reboots — they restart automatically via `restart: unless-stopped`.
+
+**Check if a reboot is pending:**
+```bash
+ssh pi "[ -f /var/run/reboot-required ] && cat /var/run/reboot-required.pkgs || echo 'No reboot required'"
+```
+
+**Check the upgrade log:**
+```bash
+ssh pi "sudo cat /var/log/unattended-upgrades/unattended-upgrades.log | tail -30"
+```
+
+### Docker container updates
+
+Containers must be updated manually — check release notes before upgrading,
+as version mismatches can cause issues (e.g. Immich requires the app and
+server to be on the same version).
+
+**Upgrade a service:**
+```bash
+cd ~/docker/tunnel-stack
+docker compose pull <service>
+docker compose up -d <service>
+```
+
+**Upgrade all tunnel-stack services at once:**
+```bash
+cd ~/docker/tunnel-stack
+docker compose pull && docker compose up -d
+```
+
+---
+
 ## Backups
 
 ### Vaultwarden
@@ -537,7 +577,7 @@ To skip the confirmation prompt:
 sudo bash ~/docker/restore-homeassistant.sh /mnt/nas/backups/homeassistant/homeassistant-2026-07-27-02-00.tar.gz -f
 ```
 
-After restore, verify Home Assistant at `http://ha.home:8123`.
+After restore, verify Home Assistant at `http://ha.home`.
 
 ### Immich
 
